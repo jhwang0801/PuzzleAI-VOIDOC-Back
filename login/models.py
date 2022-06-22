@@ -3,6 +3,10 @@ from django.contrib.auth.models import AbstractUser
 
 # Create your models here.
 
+"""
+CustomUser: A placeholder for a user to login/logout/signup.
+"""
+
 class CustomUser(AbstractUser):
     pass
 

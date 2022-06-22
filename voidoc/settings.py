@@ -28,7 +28,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',
     'django_extensions',
-    'voidoc_backend',  # App name
+    'login',  # App name
 ]
 
 MIDDLEWARE = [
@@ -66,13 +66,7 @@ WSGI_APPLICATION = 'voidoc.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
-# DATABASES = DATABASES
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+DATABASES = DATABASES
 
 
 # Password validation
@@ -144,7 +138,7 @@ CORS_ALLOW_HEADERS = (
     'x-requested-with',
 )
 
-AUTH_USER_MODEL = "voidoc_backend.CustomUser"  # Custom User model
+AUTH_USER_MODEL = "login.CustomUser"  # Custom User model
 
 LOGIN_REDIRECT_URL = "home"
 LOGOUT_REDIRECT_URL = "home"
