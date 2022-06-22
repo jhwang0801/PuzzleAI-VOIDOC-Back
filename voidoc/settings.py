@@ -1,3 +1,5 @@
+import os
+
 from pathlib     import Path
 from my_settings import SECRET_KEY, DATABASES, DEBUG
 
@@ -28,7 +30,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',
     'django_extensions',
-    'accounts',  # App name
+    'users',
+    'appointments'
 ]
 
 MIDDLEWARE = [
@@ -93,11 +96,11 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Seoul'
 
 USE_I18N = True
 
-USE_TZ = True
+USE_TZ = False
 
 
 # Static files (CSS, JavaScript, Images)
@@ -138,7 +141,9 @@ CORS_ALLOW_HEADERS = (
     'x-requested-with',
 )
 
-AUTH_USER_MODEL = "accounts.CustomUser"  # Custom User model
+# Auth_User_Model
+AUTH_USER_MODEL = "users.CustomUser"
 
-LOGIN_REDIRECT_URL = "home"
-LOGOUT_REDIRECT_URL = "home"
+# Media(Local)
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_URL  = '/media/'
