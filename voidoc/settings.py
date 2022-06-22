@@ -50,7 +50,7 @@ ROOT_URLCONF = 'voidoc.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / "templates"],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -142,8 +142,11 @@ CORS_ALLOW_HEADERS = (
 )
 
 # Auth_User_Model
-AUTH_USER_MODEL = 'users.User'
+AUTH_USER_MODEL = "users.CustomUser"
 
 # Media(Local)
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL  = '/media/'
+
+LOGIN_REDIRECT_URL = "home"
+LOGOUT_REDIRECT_URL = "home"

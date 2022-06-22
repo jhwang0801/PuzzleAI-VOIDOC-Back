@@ -13,7 +13,7 @@ class Appointment(models.Model):
         db_table = 'appointments'
 
 class UserAppointment(models.Model): 
-    user        = models.ForeignKey('users.User', on_delete=models.CASCADE)
+    patient     = models.ForeignKey('users.CustomUser', on_delete=models.CASCADE)
     doctor      = models.ForeignKey('users.Doctor', on_delete=models.CASCADE)
     appointment = models.ForeignKey('Appointment', on_delete=models.CASCADE)
 

@@ -20,29 +20,30 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, name, email, password):
-
+    def create_superuser(self, name, email, is_doctor, password):
+    
         user = self.create_user(
-            email    = self.normalize_email(email),
-            name     = name,
-            password = password
+            email     = self.normalize_email(email),
+            name      = name,
+            is_doctor = is_doctor,
+            password  = password
         )
 
         user.is_superuser = True
         user.save(using=self._db)
         return user
 
-class User(AbstractBaseUser):
+class CustomUser(AbstractBaseUser):
     name         = models.CharField(max_length=50)
     email        = models.EmailField(max_length=128, verbose_name='email', unique=True)
     is_doctor    = models.BooleanField(default=False, null=True)
-    date_joined   = models.DateTimeField(auto_now_add=True)
+    date_joined  = models.DateTimeField(auto_now_add=True)
     is_superuser = models.BooleanField(default=False)
 
     objects = UserManager()
 
     USERNAME_FIELD  = 'email'
-    REQUIRED_FIELDS = ['name', 'password']
+    REQUIRED_FIELDS = ['name', 'password', 'is_doctor']
 
     def __str__(self): 
         return self.email 
@@ -61,7 +62,7 @@ class User(AbstractBaseUser):
         db_table = 'users'
 
 class Doctor(models.Model):
-    user        = models.OneToOneField('User', on_delete=models.CASCADE)
+    user        = models.OneToOneField('CustomUser', on_delete=models.CASCADE)
     department  = models.ForeignKey('Department', on_delete=models.CASCADE)
     hospital    = models.ForeignKey('Hospital', on_delete=models.SET_NULL, null=True)
     profile_img = models.FileField(upload_to="doctor_profile_img")
@@ -78,7 +79,7 @@ class WorkingDay(models.Model):
 
 class WorkingTime(models.Model):
     working_day = models.ForeignKey('WorkingDay', on_delete=models.CASCADE)
-    time = models.TimeField()
+    time        = models.TimeField()
 
     class Meta:
         db_table = 'working_times'
@@ -90,7 +91,7 @@ class Hospital(models.Model):
         db_table = 'hospitals'
 
 class Department(models.Model): 
-    name = models.CharField(max_length=50)
+    name      = models.CharField(max_length=50)
     thumbnail = models.FileField(upload_to='department_thumbnail')
 
     class Meta: 
