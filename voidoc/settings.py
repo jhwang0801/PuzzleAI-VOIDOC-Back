@@ -28,7 +28,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',
     'django_extensions',
-    'login',  # App name
+    'accounts',  # App name
 ]
 
 MIDDLEWARE = [
@@ -138,7 +138,7 @@ CORS_ALLOW_HEADERS = (
     'x-requested-with',
 )
 
-AUTH_USER_MODEL = "login.CustomUser"  # Custom User model
+AUTH_USER_MODEL = "accounts.CustomUser"  # Custom User model
 
 LOGIN_REDIRECT_URL = "home"
 LOGOUT_REDIRECT_URL = "home"

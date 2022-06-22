@@ -5,6 +5,7 @@ from django.contrib.auth.models import AbstractUser
 
 """
 CustomUser: A placeholder for a user to login/logout/signup.
+Can connect with other models with OneToOneFields for further implementation of other types of users.
 """
 
 class CustomUser(AbstractUser):
