@@ -11,6 +11,6 @@ def validate_password(password):
     if not re.match(REGEX_PASSWORD, password):
         raise ValidationError('Enter a valid password.')
 
-def exist_email(email):
+def check_duplicate_email(email):
     if CustomUser.objects.filter(email = email).exists():
         raise IntegrityError
