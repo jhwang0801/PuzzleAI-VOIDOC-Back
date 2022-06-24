@@ -1,3 +1,4 @@
+from http import client
 import json
 
 from django.test import TestCase, Client, TransactionTestCase
@@ -12,7 +13,7 @@ class SignUpTest(TestCase):
             password  = 'asdf12345',
             is_doctor = 'False'            
         )
-    
+
     def tearDown(self):
         CustomUser.objects.all().delete()
 
@@ -25,7 +26,7 @@ class SignUpTest(TestCase):
             'is_doctor': 'False'
         }
         response = client.post('/users/signup', json.dumps(user), content_type='application/json')
-        
+
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.json(), {
             'message': 'SUCCESS'
@@ -39,7 +40,7 @@ class SignUpTest(TestCase):
             'password': '12345qwert'
         }
         response = client.post('/users/signup', json.dumps(user), content_type='application/json')
-        
+
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json(), {
             'message': 'KEY_ERROR'
@@ -54,7 +55,7 @@ class SignUpTest(TestCase):
             'is_doctor': 'False'
         }
         response = client.post('/users/signup', json.dumps(user), content_type='application/json')
-        
+
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json(), {
             'message': "Enter a valid email address."
@@ -69,7 +70,7 @@ class SignUpTest(TestCase):
             'is_doctor': 'False'
         }
         response = client.post('/users/signup', json.dumps(user), content_type='application/json')
-        
+
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json(), {
             'message': "Enter a valid password."
@@ -84,7 +85,7 @@ class SignUpTest(TestCase):
             'is_doctor': 'False'
         }
         response = client.post('/users/signup', json.dumps(user), content_type='application/json')
-        
+
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json(), {
             'message': "Users must have the name"
@@ -98,7 +99,7 @@ class SignUpIntegrityTest(TransactionTestCase):
             password  = 'asdf12345',
             is_doctor = 'False'            
         )
-    
+
     def tearDown(self):
         CustomUser.objects.all().delete()
 
@@ -111,8 +112,80 @@ class SignUpIntegrityTest(TransactionTestCase):
             'is_doctor': 'False'
         }
         response = client.post('/users/signup', json.dumps(user), content_type='application/json')
-        
+
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json(), {
             'message': "EMAIL_IS_ALREADY_REGISTERED"
+        }) 
+
+class LoginTest(TestCase):
+    def setUp(self):
+        CustomUser.objects.create_user(
+            name      = 'kevin',
+            email     = 'kevin@gmail.com',
+            password  = 'asdf12345',
+            is_doctor = 'False'            
+        )
+
+    def tearDown(self):
+        CustomUser.objects.all().delete()
+
+    def test_successful_login(self):
+        client = Client()
+        user   = {
+            'name'     : 'kevin',
+            'email'    : 'kevin@gmail.com',
+            'password' : 'asdf12345',
+            'is_doctor': 'False'
+        }
+        response = client.post('/users/login', json.dumps(user), content_type='application/json')
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json(), {
+            'message': 'SUCCESS'
+        })
+
+    def test_unsuccessful_login(self):
+        client = Client()
+        user   = {
+            'name'     : 'james',
+            'email'    : 'james@gmail.com',
+            'password' : 'uiop67890',
+            'is_doctor': 'False'
+        }
+        response = client.post('/users/login', json.dumps(user), content_type='application/json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(), {
+            'message': 'Username or password is incorrect!'
+        })
+
+    def test_wrong_username_login(self):
+        client = Client()
+        user   = {
+            'name'     : 'james',
+            'email'    : 'james@gmail.com',
+            'password' : 'asdf12345',
+            'is_doctor': 'False'
+        }
+        response = client.post('/users/login', json.dumps(user), content_type='application/json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(), {
+            'message': 'Username or password is incorrect!'
+        })
+    
+    def test_wrong_password_login(self):
+        client = Client()
+        user   = {
+            'name'     : 'kevin',
+            'email'    : 'kevin@gmail.com',
+            'password' : 'uiop67890',
+            'is_doctor': 'False'
+        }
+        response = client.post('/users/login', json.dumps(user), content_type='application/json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(), {
+            'message': 'Username or password is incorrect!'
         })
