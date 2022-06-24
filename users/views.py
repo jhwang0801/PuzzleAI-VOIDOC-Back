@@ -73,4 +73,4 @@ class LoginView(View):
             else:
                 return JsonResponse({'message' : 'INVALID_TYPE_OF_APPLICATION_ON_HEADER'}, status=400)
         else:
-            return JsonResponse({'message' : 'Email or password is incorrect!'}, status=401)
+            return JsonResponse({'message' : 'WRONG_EMAIL_OR_PASSWORD'}, status=401)
