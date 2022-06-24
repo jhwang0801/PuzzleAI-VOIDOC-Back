@@ -212,7 +212,7 @@ class LoginTest(TestCase):
 
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.json(), {
-            'message'     : 'Email or password is incorrect!',
+            'message'     : 'WRONG_EMAIL_OR_PASSWORD',
         })
 
     def test_fail_login_with_invalid_password(self):
@@ -227,7 +227,7 @@ class LoginTest(TestCase):
 
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.json(), {
-            'message'     : 'Email or password is incorrect!',
+            'message'     : 'WRONG_EMAIL_OR_PASSWORD',
         })
 
     def test_fail_login_invalid_type_of_application_on_header(self):
