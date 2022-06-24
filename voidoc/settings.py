@@ -1,7 +1,7 @@
 import os
 
 from pathlib     import Path
-from my_settings import SECRET_KEY, DATABASES, DEBUG
+from my_settings import SECRET_KEY, DATABASES, DEBUG, ALGORITHM
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -147,3 +147,6 @@ AUTH_USER_MODEL = "users.CustomUser"
 # Media(Local)
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL  = '/media/'
+
+# Algorithm
+ALGORITHM = ALGORITHM
