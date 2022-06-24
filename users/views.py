@@ -5,10 +5,10 @@ from django.http            import JsonResponse
 from django.db.utils        import IntegrityError
 from django.forms           import ValidationError
 from django.core.validators import validate_email
-from django.contrib.auth    import authenticate, login
+from django.contrib.auth    import login, authenticate
 
 from users.models import CustomUser
-from users.utils  import validate_password
+from users.utils  import check_duplicate_email, validate_password, generate_jwt
 
 class SignUpView(View):
     def post(self, request):
@@ -21,6 +21,7 @@ class SignUpView(View):
 
             validate_email(email)
             validate_password(password)
+            check_duplicate_email(email)
 
             CustomUser.objects.create_user(
                 name      = name,
@@ -39,15 +40,37 @@ class SignUpView(View):
             return JsonResponse({'message' : 'EMAIL_IS_ALREADY_REGISTERED'}, status=400)
 
 class LoginView(View):
-    def post(self,request):
-        data = json.loads(request.body)
-        username = data['email']
+    def post(self, request):
+        data     = json.loads(request.body)
+        email    = data['email']
         password = data['password']
 
-        # Authenticate that email and password match a user in the database
-        user = authenticate(request, username=username, password=password)
+        user     = authenticate(request, email=email, password=password)
+
         if user is not None:
-            login(request, user)
-            return JsonResponse({'message' : 'SUCCESS'}, status=201)
+            application_type = request.META['HTTP_TYPE_OF_APPLICATION']
+            if application_type == "app":
+                if user.is_doctor == False:
+                    login(request, user)
+
+                    return JsonResponse({
+                        'message'     : 'SUCCESS_PATIENT_LOGIN',
+                        "access_token": generate_jwt(user)
+                    }, status=200)
+                else:
+                    return JsonResponse({
+                        'message' : 'DOCTOR_CAN_NOT_LOGIN_ON_APP'
+                    }, status=401)
+
+            elif application_type == "web":
+                login(request, user)
+
+                return JsonResponse({
+                    'message'     : 'SUCCESS_LOGIN',
+                    "access_token": generate_jwt(user)
+                }, status=200)
+
+            else:
+                return JsonResponse({'message' : 'INVALID_TYPE_OF_APPLICATION_ON_HEADER'}, status=400)
         else:
-            return JsonResponse({'message' : 'Username or password is incorrect!'}, status=400)
+            return JsonResponse({'message' : 'Email or password is incorrect!'}, status=401)
