@@ -1,10 +1,9 @@
-from http import client
 import json
 
 from django.test import TestCase, Client, TransactionTestCase
 
 from users.models import CustomUser
-from users.utils import generate_jwt
+from users.utils  import generate_jwt
 
 class SignUpTest(TestCase):
     def setUp(self):
@@ -120,7 +119,7 @@ class SignUpIntegrityTest(TransactionTestCase):
         }) 
 
 class LoginTest(TestCase):
-    def setUp():
+    def setUpTestData():
         CustomUser.objects.create_user(
             name      = 'kevin',
             email     = 'kevin@gmail.com',
@@ -150,7 +149,7 @@ class LoginTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {
             'message'     : 'SUCCESS_PATIENT_LOGIN',
-            'access_token': generate_jwt(CustomUser.objects.get(id=1))
+            'access_token': generate_jwt(CustomUser.objects.get(is_doctor=False))
         })
 
     def test_fail_app_doctor_login(self):
@@ -181,7 +180,7 @@ class LoginTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {
             'message'     : 'SUCCESS_LOGIN',
-            'access_token': generate_jwt(CustomUser.objects.get(id=1))
+            'access_token': generate_jwt(CustomUser.objects.get(is_doctor=False))
         })
     
     def test_success_web_doctor_login(self):
@@ -197,8 +196,9 @@ class LoginTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {
             'message'     : 'SUCCESS_LOGIN',
-            'access_token': generate_jwt(CustomUser.objects.get(id=2))
-        })
+            'access_token': generate_jwt(CustomUser.objects.get(is_doctor=True))
+            }
+        )
 
     def test_fail_login_with_invalid_email(self):
         client = Client()
