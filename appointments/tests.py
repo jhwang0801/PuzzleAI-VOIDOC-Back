@@ -44,10 +44,9 @@ class DepartmentsListTest(TestCase):
                     {
                         "id"       : 1,
                         "name"     : "가정의학과",
-                        "thumbnail": "127.0.0.1:8000/media/department_thumbnail/family_medicine.png"
+                        "thumbnails": "127.0.0.1:8000/media/department_thumbnail/family_medicine.png"
                     }
-                ],
-                "user_name": "kevin"
+                ]
             }
         )
 
@@ -104,10 +103,10 @@ class DoctorListTest(TestCase):
                 "result": [
                     {
                         "id"         : 1,
-                        "name"       : "doctor",
-                        "department" : "가정의학과",
-                        "hospital"   : "퍼즐AI병원",
-                        "profile_img": "127.0.0.1:8000/media/doctor_profile_img/doctor_profile.png"
+                        "names"       : "doctor",
+                        "departments" : "가정의학과",
+                        "hospitals"   : "퍼즐AI병원",
+                        "profile_imgs": "127.0.0.1:8000/media/doctor_profile_img/doctor_profile.png"
                     }
                 ]
             }
