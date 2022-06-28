@@ -66,7 +66,7 @@ class SignUpTest(TestCase):
         user   = {
             'name'     : 'john',
             'email'    : 'john@gmail.com',
-            'password' : '!@#12345qwert',
+            'password' : '!@#12345qwertasdf',
             'is_doctor': 'False'
         }
         response = client.post('/users/signup', json.dumps(user), content_type='application/json')
