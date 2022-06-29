@@ -49,8 +49,7 @@ class DepartmentsListTest(TestCase):
                         "name"     : "가정의학과",
                         "thumbnails": "127.0.0.1:8000/media/department_thumbnail/family_medicine.png"
                     }
-                ],
-                "user_name": "kevin"
+                ]
             }
         )
 
