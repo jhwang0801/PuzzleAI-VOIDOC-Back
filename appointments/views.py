@@ -4,8 +4,7 @@ from django.http                import JsonResponse
 from django.views               import View
 from django.conf                import settings
 from django.core.paginator      import Paginator, PageNotAnInteger, EmptyPage
-from django.db.models           import Q
-from django.db.models           import CharField, Value as V
+from django.db.models           import CharField, Value as V, Q
 from django.db.models.functions import Concat
 
 from users.utils  import login_decorator
