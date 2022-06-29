@@ -141,6 +141,8 @@ class LoginTest(TestCase):
         user   = {
             'email'    : 'kevin@gmail.com',
             'password' : 'asdf12345',
+            'user_id'  : user.id,
+            'user_name': user.name
         }
 
         headers  = {"HTTP_TYPE_OF_APPLICATION" : "app"}
@@ -172,6 +174,8 @@ class LoginTest(TestCase):
         user   = {
             'email'    : 'kevin@gmail.com',
             'password' : 'asdf12345',
+            'user_id'  : user.id,
+            'user_name': user.name
         }
 
         headers  = {"HTTP_TYPE_OF_APPLICATION" : "web"}
@@ -188,6 +192,8 @@ class LoginTest(TestCase):
         user   = {
             'email'    : 'doctor@gmail.com',
             'password' : 'doctor123',
+            'user_id'  : user.id,
+            'user_name': user.name
         }
 
         headers  = {"HTTP_TYPE_OF_APPLICATION" : "web"}
