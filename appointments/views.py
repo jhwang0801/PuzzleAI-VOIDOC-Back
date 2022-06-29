@@ -9,6 +9,7 @@ from django.db.models           import CharField, Value as V
 from django.db.models.functions import Concat
 
 from users.utils  import login_decorator
+
 from users.models import Department, Doctor, WorkingDay, WorkingTime
 from appointments.models import Appointment
 

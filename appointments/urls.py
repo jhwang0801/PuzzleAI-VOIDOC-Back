@@ -1,4 +1,5 @@
 from django.urls import path
+from appointments.models import UserAppointment
 
 from appointments.views import DepartmentsListView, DoctorListView, WorkingDayView, WorkingTimeView
 
