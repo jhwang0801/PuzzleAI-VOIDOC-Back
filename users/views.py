@@ -55,7 +55,9 @@ class LoginView(View):
 
                     return JsonResponse({
                         'message'     : 'SUCCESS_PATIENT_LOGIN',
-                        "access_token": generate_jwt(user)
+                        "access_token": generate_jwt(user),
+                        'user_id'     : user.id,
+                        'user_name'   : user.name
                     }, status=200)
                 else:
                     return JsonResponse({
@@ -67,7 +69,9 @@ class LoginView(View):
 
                 return JsonResponse({
                     'message'     : 'SUCCESS_LOGIN',
-                    "access_token": generate_jwt(user)
+                    "access_token": generate_jwt(user),
+                    'user_id'     : user.id,
+                    'user_name'   : user.name
                 }, status=200)
 
             else:
