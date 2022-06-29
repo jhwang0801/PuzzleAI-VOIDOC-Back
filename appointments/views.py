@@ -1,3 +1,5 @@
+from datetime import date
+from django.forms import DateField, TimeField
 from django.http                import JsonResponse
 from django.views               import View
 from django.conf                import settings
@@ -6,7 +8,9 @@ from django.db.models           import CharField, Value as V
 from django.db.models.functions import Concat
 
 from users.utils  import login_decorator
-from users.models import Department, Doctor
+from users.models import Department, Doctor, WorkingDay, WorkingTime, CustomUser
+
+from appointments.models import Appointment, UserAppointment
 
 class DepartmentsListView(View):
     @login_decorator
@@ -39,3 +43,62 @@ class DoctorListView(View):
 
         except EmptyPage:
             return JsonResponse({'message' : 'THE_GIVEN_PAGE_CONTAINS_NOTHING'})
+
+class CalendarView(View):
+    @login_decorator
+    def get(self, request, doctor_id):
+        # doctor = Doctor.objects.get(pk=doctor_id)
+        dates_list = WorkingDay.select_related('doctor', 'date').filter(doctor_id=doctor_id)\
+            .annotate(
+                doctor = Concat(V(''), 'user__name', output_field=CharField()),
+                date = Concat(V(''), 'date', output_field=DateField()),
+            ).values('doctor', 'date').order_by('date')
+
+        return JsonResponse({"result" : list(dates_list)}, status = 200)
+
+class TimeSlotsView(View):
+    @login_decorator
+    def get(self, request, working_day_id):
+        # working_day = WorkingDay.objects.get(pk=working_day_id)
+        time_slots_list = WorkingTime.select_related('working_day_id', 'time').filter(working_day_id=working_day_id)\
+            .annotate(
+                working_day = Concat(V(''), 'date', output_field=DateField()),
+                working_time = Concat(V(''), 'time', output_field=TimeField())
+            ).values('working_day', 'working_time').order_by('working_time')
+        
+        return JsonResponse({"result" : list(time_slots_list)}, status = 200)
+'''
+class Appointment(models.Model):
+    symptom    = models.TextField()
+    opinion    = models.TextField()
+    state      = models.ForeignKey('State', on_delete=models.CASCADE)
+    date       = models.DateField()
+    time       = models.TimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+'''
+"""
+class AppointmentView(View):
+    @login_decorator
+    def get(self, request):
+        # View for all the appointment details
+        # References the time slot and date given in the previous two views
+        
+class UserAppointmentView(View):
+    @login_decorator
+    def get(self, request, doctor_id, patient_id, appointment_id):
+        doctor      = Doctor.objects.get(pk=doctor_id)
+        patient     = CustomUser.objects.get(pk=patient_id)
+        appointment = Appointment.objects.get(pk=appointment_id)
+
+        user_appointment = UserAppointment.objects.select_related('doctor', 'patient', 'appointment').filter(appointment_id=appointment_id)\
+            .annotate(
+                names        = Concat(V(''), 'user__name', output_field=CharField()),
+                departments  = Concat(V(''), 'department__name', output_field=CharField()),
+                hospitals    = Concat(V(''), 'hospital__name', output_field=CharField()),
+                profile_imgs = Concat(V(f'{settings.LOCAL_PATH}/doctor_profile_img/'), 'profile_img', output_field=CharField())
+            ).values('id', 'names', 'departments', 'hospitals', 'profile_imgs').order_by('id')
+    
+        return JsonResponse({"result" : list(user_appointment)}, status=200)
+                
+"""
