@@ -63,10 +63,10 @@ class WorkingTimeView(View):
         current       = datetime.strptime((datetime.now().strftime("%Y-%m-%d")), "%Y-%m-%d")
 
         if selected_date < current:
-            return JsonResponse({'message' : 'CANNOT_MAKE_AN_APPOINTMENT_FOR PAST_DATES'}, status=403)
+            return JsonResponse({'message' : 'CANNOT_MAKE_AN_APPOINTMENT_FOR PAST_DATES'}, status=400)
 
         elif selected_date == current:
-            return JsonResponse({'message' : 'NOT_AVAILABLE_ON_THE_DAY_OF_MAKING_AN_APPOINTMENT'}, status=403)
+            return JsonResponse({'message' : 'NOT_AVAILABLE_ON_THE_DAY_OF_MAKING_AN_APPOINTMENT'}, status=400)
     
         q = Q()
         q.add(Q(userappointment__doctor_id = doctor_id, date=selected_date, state_id = 1), q.AND)
