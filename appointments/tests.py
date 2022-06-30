@@ -1,6 +1,6 @@
 import jwt
 
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from django.test import TestCase, Client
 from django.conf import settings
@@ -183,18 +183,11 @@ class WorkingDayTest(TestCase):
             patient_id     = patient.id
         )
 
-        WorkingDay.objects.bulk_create([
-            WorkingDay(
-                id        = 1,
-                date      = current,
-                doctor_id = doctor.id
-            ),
-            WorkingDay(
-                id        = 2,
-                date      = current + timedelta(days=1),
-                doctor_id = doctor.id
-            )
-        ])
+        WorkingDay.objects.create(
+            id        = 1,
+            date      = current,
+            doctor_id = doctor.id
+        )
 
         self.token = jwt.encode({"user_id" : CustomUser.objects.get(is_doctor=False).id}, settings.SECRET_KEY, algorithm = settings.ALGORITHM)
         
@@ -207,14 +200,13 @@ class WorkingDayTest(TestCase):
         UserAppointment.objects.all().delete()
         WorkingDay.objects.all().delete()
 
-    def test_sucess_working_day_list(self): 
+    def test_success_working_day_list(self): 
         client  = Client()
         headers = {"HTTP_Authorization" : self.token}
 
         doctor                = CustomUser.objects.get(is_doctor=True)
         doctor_id             = Doctor.objects.get(user_id = doctor.id).id
         test_date             = datetime.strptime((datetime.now().strftime("%Y-%m-%d")), "%Y-%m-%d")
-        next_day_of_test_date = test_date+ timedelta(days=1)
         year                  = test_date.year
         month                 = test_date.month
 
@@ -224,8 +216,7 @@ class WorkingDayTest(TestCase):
         self.assertEqual(response.json(),
             {
                 "result": [
-                    test_date.day,
-                    next_day_of_test_date.day
+                    test_date.day
                 ]
             }
         )
