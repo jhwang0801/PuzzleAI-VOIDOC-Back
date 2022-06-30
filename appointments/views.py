@@ -66,10 +66,11 @@ class WorkingTimeView(View):
 
         elif selected_date == current:
             return JsonResponse({'message' : 'NOT_AVAILABLE_ON_THE_DAY_OF_MAKING_AN_APPOINTMENT'}, status=400)
-    
+
         q = Q()
-        q.add(Q(userappointment__doctor_id = doctor_id, date=selected_date, state_id = 1), q.AND)
-        q.add(Q(userappointment__doctor_id = doctor_id, date=selected_date, state_id = 2), q.OR)
+        q.add(Q(userappointment__doctor_id = doctor_id), q.AND)
+        q.add(Q(date = selected_date), q.AND)
+        q.add(Q(state_id = 1) | Q(state_id = 2), q.AND)
 
         appointments            = Appointment.objects.filter(q)
         working_times           = WorkingTime.objects.filter(working_day__doctor_id = doctor_id, working_day__date = selected_date.date())
