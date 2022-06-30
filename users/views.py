@@ -78,3 +78,16 @@ class LoginView(View):
                 return JsonResponse({'message' : 'INVALID_TYPE_OF_APPLICATION_ON_HEADER'}, status=400)
         else:
             return JsonResponse({'message' : 'WRONG_EMAIL_OR_PASSWORD'}, status=401)
+
+class CheckDuplicateEmailView(View):
+    def post(self, request):
+        try:
+            data  = json.loads(request.body)
+            email = data['email']
+            check_duplicate_email(email)
+
+            return JsonResponse({'message' : 'CAN_REGISTER_WITH_THIS_EMAIL'}, status=201)
+        except IntegrityError:
+            return JsonResponse({'message' : 'EMAIL_IS_ALREADY_REGISTERED'}, status=400)
+        except KeyError:
+            return JsonResponse({'message' : 'KEY_ERROR'}, status = 400)
