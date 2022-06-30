@@ -429,7 +429,7 @@ class WorkingTimeTest(TestCase):
 
         response = client.get(f'/appointments/doctor/{doctor_id}/workingtime?year={year}&month={month}&day={day}', **headers, content_type='application/json')
 
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json(),
             {
                 'message': 'CANNOT_MAKE_AN_APPOINTMENT_FOR PAST_DATES'
@@ -449,7 +449,7 @@ class WorkingTimeTest(TestCase):
 
         response = client.get(f'/appointments/doctor/{doctor_id}/workingtime?year={year}&month={month}&day={day}', **headers, content_type='application/json')
 
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json(),
             {
                 'message': 'NOT_AVAILABLE_ON_THE_DAY_OF_MAKING_AN_APPOINTMENT'
