@@ -1,16 +1,15 @@
-from datetime import date
-from django.forms import DateField, TimeField
+from datetime import datetime
+
 from django.http                import JsonResponse
 from django.views               import View
 from django.conf                import settings
 from django.core.paginator      import Paginator, PageNotAnInteger, EmptyPage
-from django.db.models           import CharField, Value as V
+from django.db.models           import CharField, Value as V, Q
 from django.db.models.functions import Concat
 
 from users.utils  import login_decorator
-from users.models import Department, Doctor, WorkingDay, WorkingTime, CustomUser
-
-from appointments.models import Appointment, UserAppointment
+from users.models import Department, Doctor, WorkingDay, WorkingTime
+from appointments.models import Appointment
 
 class DepartmentsListView(View):
     @login_decorator
@@ -44,61 +43,38 @@ class DoctorListView(View):
         except EmptyPage:
             return JsonResponse({'message' : 'THE_GIVEN_PAGE_CONTAINS_NOTHING'})
 
-class CalendarView(View):
+class WorkingDayView(View):
     @login_decorator
     def get(self, request, doctor_id):
-        # doctor = Doctor.objects.get(pk=doctor_id)
-        dates_list = WorkingDay.select_related('doctor', 'date').filter(doctor_id=doctor_id)\
-            .annotate(
-                doctor = Concat(V(''), 'user__name', output_field=CharField()),
-                date = Concat(V(''), 'date', output_field=DateField()),
-            ).values('doctor', 'date').order_by('date')
+        year        = int(request.GET.get('year'))
+        month       = int(request.GET.get('month'))
+        not_day_off = [working_day.date.day for working_day in WorkingDay.objects.filter(doctor_id=doctor_id, date__year = year, date__month = month)]
 
-        return JsonResponse({"result" : list(dates_list)}, status = 200)
+        return JsonResponse({'result' : not_day_off}, status=200)
 
-class TimeSlotsView(View):
+class WorkingTimeView(View):
     @login_decorator
-    def get(self, request, working_day_id):
-        # working_day = WorkingDay.objects.get(pk=working_day_id)
-        time_slots_list = WorkingTime.select_related('working_day_id', 'time').filter(working_day_id=working_day_id)\
-            .annotate(
-                working_day = Concat(V(''), 'date', output_field=DateField()),
-                working_time = Concat(V(''), 'time', output_field=TimeField())
-            ).values('working_day', 'working_time').order_by('working_time')
-        
-        return JsonResponse({"result" : list(time_slots_list)}, status = 200)
-'''
-class Appointment(models.Model):
-    symptom    = models.TextField()
-    opinion    = models.TextField()
-    state      = models.ForeignKey('State', on_delete=models.CASCADE)
-    date       = models.DateField()
-    time       = models.TimeField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-'''
-"""
-class AppointmentView(View):
-    @login_decorator
-    def get(self, request):
-        # View for all the appointment details
-        # References the time slot and date given in the previous two views
-        
-class UserAppointmentView(View):
-    @login_decorator
-    def get(self, request, doctor_id, patient_id, appointment_id):
-        doctor      = Doctor.objects.get(pk=doctor_id)
-        patient     = CustomUser.objects.get(pk=patient_id)
-        appointment = Appointment.objects.get(pk=appointment_id)
+    def get(self, request, doctor_id):
+        year          = int(request.GET.get('year'))
+        month         = int(request.GET.get('month'))
+        day           = int(request.GET.get('day'))
+        selected_date = datetime(year, month, day)
+        current       = datetime.strptime((datetime.now().strftime("%Y-%m-%d")), "%Y-%m-%d")
 
-        user_appointment = UserAppointment.objects.select_related('doctor', 'patient', 'appointment').filter(appointment_id=appointment_id)\
-            .annotate(
-                names        = Concat(V(''), 'user__name', output_field=CharField()),
-                departments  = Concat(V(''), 'department__name', output_field=CharField()),
-                hospitals    = Concat(V(''), 'hospital__name', output_field=CharField()),
-                profile_imgs = Concat(V(f'{settings.LOCAL_PATH}/doctor_profile_img/'), 'profile_img', output_field=CharField())
-            ).values('id', 'names', 'departments', 'hospitals', 'profile_imgs').order_by('id')
-    
-        return JsonResponse({"result" : list(user_appointment)}, status=200)
-                
-"""
+        if selected_date < current:
+            return JsonResponse({'message' : 'CANNOT_MAKE_AN_APPOINTMENT_FOR PAST_DATES'}, status=400)
+
+        elif selected_date == current:
+            return JsonResponse({'message' : 'NOT_AVAILABLE_ON_THE_DAY_OF_MAKING_AN_APPOINTMENT'}, status=400)
+
+        q = Q()
+        q.add(Q(userappointment__doctor_id = doctor_id), q.AND)
+        q.add(Q(date = selected_date), q.AND)
+        q.add(Q(state_id = 1) | Q(state_id = 2), q.AND)
+
+        appointments            = Appointment.objects.filter(q)
+        working_times           = WorkingTime.objects.filter(working_day__doctor_id = doctor_id, working_day__date = selected_date.date())
+        appointmented_time_list = [appointment.time.strftime("%H:%M") for appointment in appointments]
+        working_time_list       = [working_time.time.strftime("%H:%M") for working_time in working_times]
+
+        return JsonResponse({'working_time' : working_time_list, 'appointmented_time' : appointmented_time_list}, status=200)

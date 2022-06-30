@@ -66,7 +66,7 @@ class SignUpTest(TestCase):
         user   = {
             'name'     : 'john',
             'email'    : 'john@gmail.com',
-            'password' : '!@#12345qwert',
+            'password' : '!@#12345qwertasdf',
             'is_doctor': 'False'
         }
         response = client.post('/users/signup', json.dumps(user), content_type='application/json')
@@ -146,10 +146,14 @@ class LoginTest(TestCase):
         headers  = {"HTTP_TYPE_OF_APPLICATION" : "app"}
         response = client.post('/users/login', json.dumps(user), content_type='application/json', **headers)
 
+        user = CustomUser.objects.get(is_doctor=False)
+
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {
             'message'     : 'SUCCESS_PATIENT_LOGIN',
-            'access_token': generate_jwt(CustomUser.objects.get(is_doctor=False))
+            'access_token': generate_jwt(user),
+            'user_id'     : user.id,
+            'user_name'   : user.name
         })
 
     def test_fail_app_doctor_login(self):
@@ -176,11 +180,14 @@ class LoginTest(TestCase):
 
         headers  = {"HTTP_TYPE_OF_APPLICATION" : "web"}
         response = client.post('/users/login', json.dumps(user), content_type='application/json', **headers)
+        user = CustomUser.objects.get(is_doctor=False)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {
             'message'     : 'SUCCESS_LOGIN',
-            'access_token': generate_jwt(CustomUser.objects.get(is_doctor=False))
+            'access_token': generate_jwt(user),
+            'user_id'     : user.id,
+            'user_name'   : user.name
         })
     
     def test_success_web_doctor_login(self):
@@ -192,11 +199,14 @@ class LoginTest(TestCase):
 
         headers  = {"HTTP_TYPE_OF_APPLICATION" : "web"}
         response = client.post('/users/login', json.dumps(user), content_type='application/json', **headers)
+        doctor = CustomUser.objects.get(is_doctor=True)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {
             'message'     : 'SUCCESS_LOGIN',
-            'access_token': generate_jwt(CustomUser.objects.get(is_doctor=True))
+            'access_token': generate_jwt(doctor),
+            'user_id'          : doctor.id,
+            'user_name'        : doctor.name
             }
         )
 

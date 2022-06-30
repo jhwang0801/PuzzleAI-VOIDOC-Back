@@ -11,7 +11,7 @@ from django.http            import JsonResponse
 from users.models import CustomUser
 
 def validate_password(password):
-    REGEX_PASSWORD = '^[A-Za-z0-9]{8,}$'
+    REGEX_PASSWORD = '^(?=.*\d)(?=.*[a-zA-Z])[0-9a-zA-Z]{8,}$'
 
     if not re.match(REGEX_PASSWORD, password):
         raise ValidationError('Enter a valid password.')
