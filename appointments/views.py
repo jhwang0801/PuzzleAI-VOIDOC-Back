@@ -145,3 +145,17 @@ class AppointmentListView(View):
             - This is assuming that the State and AppointmentImage objects are already created and are included when retrieving details about said appointment
 
 """
+
+class AppointmentView(View):
+    @login_decorator
+    def get(self, request, patient_id, appointment_id):
+        # This is similar to the get in appointmentlistview, just slightly different bc other parameters in method call.
+        return JsonResponse({"result" : 'empty'}, status=200)
+
+    def post(self, request, doctor_id, patient_id):
+
+        return JsonResponse({"result" : 'empty'}, status=200)
+
+    def patch(self, request, appointment_id):
+
+        return JsonResponse({"result" : 'empty'}, status=200)
