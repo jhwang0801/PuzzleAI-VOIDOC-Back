@@ -3,7 +3,7 @@ import json
 from django.test import TestCase, Client, TransactionTestCase
 
 from users.models import CustomUser
-from users.views  import Validation
+from users.utils  import Validation
 
 class SignUpTest(TestCase):
     def setUp(self):
