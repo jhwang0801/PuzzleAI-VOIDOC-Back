@@ -1,15 +1,17 @@
 from datetime import datetime, date, time, timedelta
 
 from django.http                import JsonResponse
+from django.db                  import transaction
 from django.views               import View
 from django.conf                import settings
 from django.core.paginator      import Paginator, PageNotAnInteger, EmptyPage
 from django.db.models           import CharField, Value as V, Q
 from django.db.models.functions import Concat
 
-from users.utils  import login_decorator
-from users.models import Department, Doctor, WorkingDay, WorkingTime
-from appointments.models import Appointment
+from users.utils         import login_decorator
+from users.models        import Department, Doctor, WorkingDay, WorkingTime
+from appointments.models import Appointment, AppointmentImage, UserAppointment
+
 
 class DepartmentsListView(View):
     @login_decorator
@@ -94,6 +96,53 @@ class CancellationView(View):
                 return JsonResponse({'message' : 'APPOINTMENT_HAS_BEEN_CANCELED'}, status=200)
             else:
                 return JsonResponse({'message' : 'ALREADY_CANCELED_OR_CLOSED_APPOINTMENT'}, status = 400)
+        except KeyError:
+            return JsonResponse({"message" : "KEY_ERROR"}, status=400)
+        except Appointment.DoesNotExist:
+            return JsonResponse({"message" : "APPOINTMENT_DOES_NOT_EXIST"}, status=404)
+
+class AppointmentCreationView(View):
+    @login_decorator
+    def post(self, request):
+        try:
+            patient_id          = request.user.id
+            doctor_id           = int(request.POST['doctor_id'])
+            appointmented_year  = int(request.POST['year'])
+            appointmented_month = int(request.POST['month'])
+            appointmented_day   = int(request.POST['day'])
+            appointmented_time  = int(request.POST['time'])
+            symptom             = request.POST['symptom']
+            images              = request.FILES.getlist('image')
+            selected_date       = date(appointmented_year, appointmented_month, appointmented_day)
+            selected_time       = time(appointmented_time)
+
+            if len(images) > 6:
+                return JsonResponse({'message' : 'DO_NOT_ALLOW_TO_UPLOAD_IMAGES_MORE_THAN_6'}, status=400)
+
+            with transaction.atomic():
+                Appointment.objects.create(
+                    symptom  = symptom,
+                    date     = selected_date,
+                    time     = selected_time,
+                    state_id = 1
+                )
+
+                appointment= Appointment.objects.get(date=selected_date, time=selected_time)
+                UserAppointment.objects.create(
+                    appointment_id = appointment.id,
+                    doctor_id      = doctor_id,
+                    patient_id     = patient_id
+                )
+
+                AppointmentImage.objects.bulk_create([
+                    AppointmentImage(
+                        wound_img      = image,
+                        appointment_id = appointment.id
+                    ) for image in images
+                ])
+                return JsonResponse({'message' : 'YOUR_APPOINTMENT_HAS_BEEN_CREATED'}, status = 201)
+        except Appointment.MultipleObjectsReturned:
+            return JsonResponse({'message' : 'RETURNED_MORE_THAN_ONE_APPOINTMENT'}, status = 400)
         except KeyError:
             return JsonResponse({"message" : "KEY_ERROR"}, status=400)
         except Appointment.DoesNotExist:
