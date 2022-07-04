@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from django.test import TestCase, Client
 from django.conf import settings
 
-from users.models import CustomUser, Department, Hospital, Doctor, WorkingDay, WorkingTime
+from users.models        import CustomUser, Department, Hospital, Doctor, WorkingDay, WorkingTime
 from appointments.models import Appointment, State, UserAppointment
 
 class DepartmentsListTest(TestCase):
@@ -35,7 +35,7 @@ class DepartmentsListTest(TestCase):
         Department.objects.all().delete()
         Hospital.objects.all().delete()
 
-    def test_sucess_department_list(self):
+    def test_success_department_list(self):
         client = Client()
         headers = {"HTTP_Authorization" : self.token}
         response = client.get('/appointments/departments', **headers, content_type='application/json')
@@ -47,7 +47,7 @@ class DepartmentsListTest(TestCase):
                     {
                         "id"       : 1,
                         "name"     : "가정의학과",
-                        "thumbnails": "127.0.0.1:8000/media/department_thumbnail/family_medicine.png"
+                        "thumbnails": f'{settings.LOCAL_PATH}/department_thumbnail/family_medicine.png'
                     }
                 ]
             }
@@ -95,7 +95,7 @@ class DoctorListTest(TestCase):
         Hospital.objects.all().delete()
         Doctor.objects.all().delete()
 
-    def test_sucess_doctor_list(self):
+    def test_success_doctor_list(self):
         client = Client()
         headers = {"HTTP_Authorization" : self.token}
         response = client.get('/appointments/departments/1', **headers, content_type='application/json')
@@ -109,7 +109,7 @@ class DoctorListTest(TestCase):
                         "names"       : "doctor",
                         "departments" : "가정의학과",
                         "hospitals"   : "퍼즐AI병원",
-                        "profile_imgs": "127.0.0.1:8000/media/doctor_profile_img/doctor_profile.png"
+                        "profile_imgs": f"{settings.LOCAL_PATH}/doctor_profile_img/doctor_profile.png"
                     }
                 ]
             }
@@ -183,18 +183,11 @@ class WorkingDayTest(TestCase):
             patient_id     = patient.id
         )
 
-        WorkingDay.objects.bulk_create([
-            WorkingDay(
-                id        = 1,
-                date      = current,
-                doctor_id = doctor.id
-            ),
-            WorkingDay(
-                id        = 2,
-                date      = current + timedelta(days=1),
-                doctor_id = doctor.id
-            )
-        ])
+        WorkingDay.objects.create(
+            id        = 1,
+            date      = current,
+            doctor_id = doctor.id
+        )
 
         self.token = jwt.encode({"user_id" : CustomUser.objects.get(is_doctor=False).id}, settings.SECRET_KEY, algorithm = settings.ALGORITHM)
         
@@ -207,14 +200,13 @@ class WorkingDayTest(TestCase):
         UserAppointment.objects.all().delete()
         WorkingDay.objects.all().delete()
 
-    def test_sucess_working_day_list(self): 
+    def test_success_working_day_list(self): 
         client  = Client()
         headers = {"HTTP_Authorization" : self.token}
 
         doctor                = CustomUser.objects.get(is_doctor=True)
         doctor_id             = Doctor.objects.get(user_id = doctor.id).id
         test_date             = datetime.strptime((datetime.now().strftime("%Y-%m-%d")), "%Y-%m-%d")
-        next_day_of_test_date = test_date+ timedelta(days=1)
         year                  = test_date.year
         month                 = test_date.month
 
@@ -224,8 +216,7 @@ class WorkingDayTest(TestCase):
         self.assertEqual(response.json(),
             {
                 "result": [
-                    test_date.day,
-                    next_day_of_test_date.day
+                    test_date.day
                 ]
             }
         )
@@ -395,7 +386,7 @@ class WorkingTimeTest(TestCase):
         WorkingDay.objects.all().delete()
         WorkingTime.objects.all().delete()
 
-    def test_sucess_working_time_list(self):
+    def test_success_working_time_list(self):
         client  = Client()
         headers = {"HTTP_Authorization" : self.token}
 
@@ -455,3 +446,163 @@ class WorkingTimeTest(TestCase):
                 'message': 'NOT_AVAILABLE_ON_THE_DAY_OF_MAKING_AN_APPOINTMENT'
             }
         )
+
+class CancellationTest(TestCase):
+    def setUp(self):
+        CustomUser.objects.create_user(
+            name      = 'kevin',
+            email     = 'kevin@gmail.com',
+            password  = 'kevin1123',
+            is_doctor = 'False'
+        )
+        
+        CustomUser.objects.create_user(
+            name      = 'doctor',
+            email     = 'doctor@gmail.com',
+            password  = 'doctor123',
+            is_doctor = 'True'
+        )
+
+        doc     = CustomUser.objects.get(is_doctor=True)
+        patient = CustomUser.objects.get(is_doctor=False)
+
+        Department.objects.create(
+            id        = 1,
+            name      = "가정의학과",
+            thumbnail = "family_medicine.png"
+        )
+
+        Hospital.objects.create(
+            id   = 1,
+            name = "퍼즐AI병원"
+        )
+
+        department = Department.objects.get(name="가정의학과")
+        hospital = Hospital.objects.get(name="퍼즐AI병원")
+
+        Doctor.objects.create(
+            id            = 1,
+            user_id       = doc.id,
+            department_id = department.id,
+            hospital_id   = hospital.id,
+            profile_img   = "doctor_profile.png"
+        )
+
+        doctor = Doctor.objects.get(id=1)
+
+        State.objects.bulk_create([
+            State(
+                id   = 1,
+                name = "진료대기"
+            ),
+            State(
+                id   = 2,
+                name = "진료취소"
+            ),
+            State(
+                id   = 3,
+                name = "진료완료"
+            )
+        ])
+
+        five_days_after    = datetime.now() + timedelta(days=5)
+        two_days_after     = datetime.now() + timedelta(days=2)
+        less_an_hour_after = datetime.now() + timedelta(seconds=1500)
+
+        Appointment.objects.bulk_create([
+            Appointment(            
+                id         = 1,
+                symptom    = "아파요",
+                opinion    = "괜찮아요",
+                date       = five_days_after.date(),
+                time       = five_days_after.time(),
+                state_id   = 1
+            ),
+            Appointment(            
+                id         = 2,
+                symptom    = "아파요",
+                opinion    = "괜찮아요",
+                date       = less_an_hour_after.date(),
+                time       = less_an_hour_after.time(),
+                state_id   = 1
+            ),
+            Appointment(            
+                id         = 3,
+                symptom    = "아파요",
+                opinion    = "괜찮아요",
+                date       = two_days_after.date(),
+                time       = two_days_after.time(),
+                state_id   = 2
+            )
+        ])
+
+        UserAppointment.objects.bulk_create([
+            UserAppointment(
+                id             = 1,
+                appointment_id = 1,
+                doctor_id      = doctor.id,
+                patient_id     = patient.id
+            ),
+            UserAppointment(
+                id             = 2,
+                appointment_id = 2,
+                doctor_id      = doctor.id,
+                patient_id     = patient.id
+            ),
+            UserAppointment(
+                id             = 3,
+                appointment_id = 3,
+                doctor_id      = doctor.id,
+                patient_id     = patient.id
+            )
+        ])
+
+        self.token = jwt.encode({"user_id" : CustomUser.objects.get(is_doctor=False).id}, settings.SECRET_KEY, algorithm = settings.ALGORITHM)
+        
+    def tearDown(self):
+        CustomUser.objects.all().delete()
+        Department.objects.all().delete()
+        Hospital.objects.all().delete()
+        Doctor.objects.all().delete()
+        Appointment.objects.all().delete()
+        UserAppointment.objects.all().delete()
+
+    def test_success_cancellation(self):
+        client  = Client()
+        headers = {"HTTP_Authorization" : self.token}
+        appointment_id = Appointment.objects.get(id=1).id
+
+        response = client.patch(f'/appointments/{appointment_id}/cancellation', **headers, content_type='application/json')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'message' : 'APPOINTMENT_HAS_BEEN_CANCELED'})
+
+    def test_fail_cancellation_an_hour_prior_to(self):
+        client  = Client()
+        headers = {"HTTP_Authorization" : self.token}
+        appointment_id = Appointment.objects.get(id=2).id
+
+        response = client.patch(f'/appointments/{appointment_id}/cancellation', **headers, content_type='application/json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(), {'message' : 'APPOINTMENTS_CAN_BE_CANCELLED_ONLY_AN_HOUR_PRIOR_TO_THE_SCHEDULED_TIME'})
+    
+    def test_fail_cancellation_already_canceled_or_closed(self):
+        client  = Client()
+        headers = {"HTTP_Authorization" : self.token}
+        appointment_id = Appointment.objects.get(id=3).id
+
+        response = client.patch(f'/appointments/{appointment_id}/cancellation', **headers, content_type='application/json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(), {'message' : 'ALREADY_CANCELED_OR_CLOSED_APPOINTMENT'})
+
+    def test_fail_cancellation_does_not_exist(self):
+        client  = Client()
+        headers = {"HTTP_Authorization" : self.token}
+        appointment_id = 4
+
+        response = client.patch(f'/appointments/{appointment_id}/cancellation', **headers, content_type='application/json')
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json(), {'message' : 'APPOINTMENT_DOES_NOT_EXIST'})

@@ -3,7 +3,7 @@ import json
 from django.test import TestCase, Client, TransactionTestCase
 
 from users.models import CustomUser
-from users.utils  import generate_jwt
+from users.utils  import Validation
 
 class SignUpTest(TestCase):
     def setUp(self):
@@ -118,7 +118,7 @@ class SignUpIntegrityTest(TransactionTestCase):
             'message': "EMAIL_IS_ALREADY_REGISTERED"
         }) 
 
-class LoginTest(TestCase):
+class LoginTest(TestCase, Validation):
     def setUpTestData():
         CustomUser.objects.create_user(
             name      = 'kevin',
@@ -151,7 +151,7 @@ class LoginTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {
             'message'     : 'SUCCESS_PATIENT_LOGIN',
-            'access_token': generate_jwt(user),
+            'access_token': self.generate_jwt(user),
             'user_id'     : user.id,
             'user_name'   : user.name
         })
@@ -185,7 +185,7 @@ class LoginTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {
             'message'     : 'SUCCESS_LOGIN',
-            'access_token': generate_jwt(user),
+            'access_token': self.generate_jwt(user),
             'user_id'     : user.id,
             'user_name'   : user.name
         })
@@ -204,7 +204,7 @@ class LoginTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {
             'message'     : 'SUCCESS_LOGIN',
-            'access_token': generate_jwt(doctor),
+            'access_token': self.generate_jwt(doctor),
             'user_id'          : doctor.id,
             'user_name'        : doctor.name
             }
@@ -254,3 +254,63 @@ class LoginTest(TestCase):
         self.assertEqual(response.json(), {
             'message'     : 'INVALID_TYPE_OF_APPLICATION_ON_HEADER',
         })
+
+class CheckDuplicateTest(TestCase):
+    def setUp(self):
+        CustomUser.objects.create_user(
+            name      = 'kevin',
+            email     = 'kevin@gmail.com',
+            password  = 'asdf12345',
+            is_doctor = 'False'            
+        )
+
+    def tearDown(self):
+        CustomUser.objects.all().delete()
+
+    def test_success_can_register_with_this_email(self): 
+        client = Client()
+        data   = {
+            'email'    : 'john@gmail.com'
+        }
+        response = client.post('/users/check_duplicate', json.dumps(data), content_type='application/json')
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json(), {
+            'message': 'CAN_REGISTER_WITH_THIS_EMAIL'
+        })
+
+    def test_fail_sign_up_view_with_key_error(self): 
+        client = Client()
+        data   = {
+            'emails'   : 'john@gmail.com'
+        }
+        response = client.post('/users/check_duplicate', json.dumps(data), content_type='application/json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(), {
+            'message': 'KEY_ERROR'
+        })
+
+class CheckDuplicateEmailIntegrityTest(TransactionTestCase):
+    def setUp(self):
+        CustomUser.objects.create_user(
+            name      = 'kevin',
+            email     = 'kevin@gmail.com',
+            password  = 'asdf12345',
+            is_doctor = 'False'            
+        )
+
+    def tearDown(self):
+        CustomUser.objects.all().delete()
+
+    def test_fail_check_duplicate_email_integrity_error(self):
+        client = Client()
+        data = {
+            'email'    : 'kevin@gmail.com'
+        }
+        response = client.post('/users/check_duplicate', json.dumps(data), content_type='application/json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(), {
+            'message': "EMAIL_IS_ALREADY_REGISTERED"
+        }) 

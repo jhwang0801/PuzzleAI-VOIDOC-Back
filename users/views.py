@@ -1,4 +1,5 @@
 import json
+import re
 
 from django.views           import View
 from django.http            import JsonResponse
@@ -8,9 +9,15 @@ from django.core.validators import validate_email
 from django.contrib.auth    import login, authenticate
 
 from users.models import CustomUser
-from users.utils  import check_duplicate_email, validate_password, generate_jwt
+from users.utils  import Validation
 
-class SignUpView(View):
+class SignUpView(View, Validation):
+    def validate_password(self, password):
+        REGEX_PASSWORD = '^(?=.*\d)(?=.*[a-zA-Z])[0-9a-zA-Z]{8,}$'
+
+        if not re.match(REGEX_PASSWORD, password):
+            raise ValidationError('Enter a valid password.')
+
     def post(self, request):
         try:
             data = json.loads(request.body)
@@ -20,8 +27,8 @@ class SignUpView(View):
             is_doctor       = data['is_doctor']
 
             validate_email(email)
-            validate_password(password)
-            check_duplicate_email(email)
+            self.validate_password(password)
+            self.check_duplicate_email(email)
 
             CustomUser.objects.create_user(
                 name      = name,
@@ -39,12 +46,11 @@ class SignUpView(View):
         except IntegrityError:
             return JsonResponse({'message' : 'EMAIL_IS_ALREADY_REGISTERED'}, status=400)
 
-class LoginView(View):
+class LoginView(View, Validation):
     def post(self, request):
         data     = json.loads(request.body)
         email    = data['email']
         password = data['password']
-
         user     = authenticate(request, email=email, password=password)
 
         if user is not None:
@@ -55,7 +61,7 @@ class LoginView(View):
 
                     return JsonResponse({
                         'message'     : 'SUCCESS_PATIENT_LOGIN',
-                        "access_token": generate_jwt(user),
+                        "access_token": self.generate_jwt(user),
                         'user_id'     : user.id,
                         'user_name'   : user.name
                     }, status=200)
@@ -69,7 +75,7 @@ class LoginView(View):
 
                 return JsonResponse({
                     'message'     : 'SUCCESS_LOGIN',
-                    "access_token": generate_jwt(user),
+                    "access_token": self.generate_jwt(user),
                     'user_id'     : user.id,
                     'user_name'   : user.name
                 }, status=200)
@@ -78,3 +84,16 @@ class LoginView(View):
                 return JsonResponse({'message' : 'INVALID_TYPE_OF_APPLICATION_ON_HEADER'}, status=400)
         else:
             return JsonResponse({'message' : 'WRONG_EMAIL_OR_PASSWORD'}, status=401)
+
+class CheckDuplicateEmailView(View, Validation):
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            email = data['email']
+            self.check_duplicate_email(email)
+            
+            return JsonResponse({'message' : 'CAN_REGISTER_WITH_THIS_EMAIL'}, status=201)
+        except IntegrityError:
+            return JsonResponse({'message' : 'EMAIL_IS_ALREADY_REGISTERED'}, status=400)
+        except KeyError:
+            return JsonResponse({'message' : 'KEY_ERROR'}, status = 400)
