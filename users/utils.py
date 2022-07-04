@@ -65,4 +65,4 @@ class DateTimeFormat:
         elif time.strftime("%p") == "PM":
             time_format = "오후 "
         
-        return f'{date.strftime("%Y-%m-%d")}{day}{time_format}{time.strftime("%I:%M")}'
+        return f'{date.strftime("%Y-%m-%d")}{day}{time_format}{time.strftime("%I:%M").lstrip("0")}'

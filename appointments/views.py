@@ -1,16 +1,15 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from django.http                import JsonResponse
 from django.views               import View
 from django.conf                import settings
-from django.core                import serializers
 from django.core.paginator      import Paginator, PageNotAnInteger, EmptyPage
-from django.db.models           import CharField, IntegerField, Value as V, Q, Func, F, ExpressionWrapper
+from django.db.models           import CharField, Value as V, Q
 from django.db.models.functions import Concat
 
 from users.utils  import login_decorator, DateTimeFormat
 from users.models import Department, Doctor, WorkingDay, WorkingTime
-from appointments.models import Appointment, UserAppointment
+from appointments.models import Appointment
 
 class DepartmentsListView(View):
     @login_decorator
@@ -85,36 +84,20 @@ class AppointmentListView(View, DateTimeFormat):
     def get(self, request):
         try: 
             page    = request.GET.get('page', 1)
-            patient_id = request.user.id
-            appointment_info = Appointment.objects.filter(userappointment__patient_id=patient_id)\
-                .annotate(
-                    appointment_id = Concat(V(''), 'id', output_field=IntegerField()),
-                    appointment_date = Concat(V(''), 
-                        Func(F('date'), V('%m-%d-%Y(%W) '), function='DATE_FORMAT', output_field=CharField()), 
-                        Func(F('time'), V('%p %h:%i'), function='TIME_FORMAT', output_field=CharField()),
-                        output_field=CharField()), 
-                    state_name     = Concat(V(''), 'state_id', output_field=CharField()),
-                ).values('appointment_id', 'appointment_date', 'state_name')
-            
-            appointment_people = UserAppointment.objects.filter(patient_id=patient_id)\
-                .annotate(
-                    doctor_name  = Concat(V(''), 'doctor__user__name', output_field=CharField()),         
-                    doctor_hospital    = Concat(V(''), 'doctor__hospital__name', output_field=CharField()),
-                    doctor_department  = Concat(V(''), 'doctor__department__name', output_field=CharField()),
-                    doctor_profile_img = Concat(V(f'{settings.LOCAL_PATH}/doctor_profile_img/'), 'doctor__profile_img', output_field=CharField())
-                ).values('appointment_id', 'doctor_name', 'doctor_hospital', 'doctor_department', 'doctor_profile_img')
+            appointments = Appointment.objects.select_related('state').prefetch_related('userappointment_set', 'userappointment_set__doctor', 'userappointment_set__doctor__user', 'userappointment_set__doctor__department', 'userappointment_set__doctor__hospital')\
+                .filter(userappointment__patient_id = request.user.id).order_by('state_id', 'date', 'time')
+            appointment_list = [{
+                "appointment_id"    : appointment.id,
+                "appointment_date"  : self.format_date_time(appointment.date, appointment.time),
+                "state_name"        : appointment.state.name,
+                "doctor_name"       : appointment.userappointment_set.first().doctor.user.name,
+                "doctor_hospital"   : appointment.userappointment_set.first().doctor.hospital.name,
+                "doctor_department" : appointment.userappointment_set.first().doctor.department.name,
+                "doctor_profile_img": f'{settings.LOCAL_PATH}/doctor_profile_img/{appointment.userappointment_set.first().doctor.profile_img}'
+            } for appointment in appointments]
 
-            lst = sorted(chain(appointment_info, appointment_people), key=lambda x:x['appointment_id'])
-            appointments = []
-            for k,v in groupby(lst, key=lambda x:x['appointment_id']):
-                d = {}
-                for dct in v:
-                    d.update(dct)
-                appointments.append(d)
-
-            appointments_paginator = Paginator(appointments, 4).page(page).object_list
-
-            return JsonResponse({"result" : list(appointments_paginator)}, status=200)
+            appointments_paginator = Paginator(appointment_list, 4).page(page).object_list
+            return JsonResponse({'result' : appointments_paginator}, status=200)
 
         except PageNotAnInteger:
             return JsonResponse({'message' : 'PAGE_HAS_TO_BE_AN_INTEGER'})
@@ -122,20 +105,39 @@ class AppointmentListView(View, DateTimeFormat):
         except EmptyPage:
             return JsonResponse({'message' : 'THE_GIVEN_PAGE_CONTAINS_NOTHING'})
 
-class AppointmentDetailView(View):
+class AppointmentDetailView(View, DateTimeFormat):
     @login_decorator
     def get(self, request, appointment_id):
-        patient_id = request.user.id
-        appointment_info = Appointment.objects.filter(userappointment__patient_id=patient_id, userappointment__appointment_id=appointment_id)\
-            .annotate(
-                Wound_img   = Concat(V(f'{settings.LOCAL_PATH}/media/wound_img/'), 'appointmentimage__wound_img', output_field=CharField()),
-                patient_symptom = Concat(V(''), 'symptom', output_field=CharField()),
-                doctor_opinion = Concat(V(''), 'opinion', output_field=CharField()),
-                appointment_date = Concat(V(''), 
-                        Func(F('date'), V('%m-%d-%Y(%W) '), function='DATE_FORMAT', output_field=CharField()), 
-                        Func(F('time'), V('%p %h:%i'), function='TIME_FORMAT', output_field=CharField()),
-                        output_field=CharField())
-            ).values('Wound_img','patient_symptom', 'doctor_opinion', 'appointment_date')
+        try:
+            appointment = Appointment.objects.get(userappointment__patient_id=request.user.id, userappointment__appointment_id=appointment_id)
+            appointment_detail = {    
+                "Wound_img"       : [f'{settings.LOCAL_PATH}/{image.wound_img}' for image in appointment.appointmentimage_set.all()],  
+                "patient_symptom"   : appointment.symptom,
+                "doctor_opinion"    : appointment.opinion,
+                "appointment_date"  : self.format_date_time(appointment.date, appointment.time)
+            }
+
+            return JsonResponse({'result' : appointment_detail}, status=200)
         
-            
-        return JsonResponse({"result" : list(appointment_info)}, status=200)
+        except Appointment.DoesNotExist:
+            return JsonResponse({'APPOINTMENT_DOES_NOT_EXIST'}, status=404)
+
+class CancellationView(View):
+    @login_decorator
+    def patch(self, request, appointment_id):
+        try:
+            appointment = Appointment.objects.get(id=appointment_id, userappointment__patient_id=request.user.id)
+            appointment_datetime = datetime.combine(appointment.date, appointment.time)
+
+            if appointment_datetime - datetime.now() < timedelta(seconds=3600):
+                return JsonResponse({'message' : 'APPOINTMENTS_CAN_BE_CANCELLED_ONLY_AN_HOUR_PRIOR_TO_THE_SCHEDULED_TIME'}, status=400)
+
+            if appointment.state.id == 1:
+                Appointment.objects.filter(id=appointment_id).update(state_id = 2)
+                return JsonResponse({'message' : 'APPOINTMENT_HAS_BEEN_CANCELED'}, status=200)
+            else:
+                return JsonResponse({'message' : 'ALREADY_CANCELED_OR_CLOSED_APPOINTMENT'}, status = 400)
+        except KeyError:
+            return JsonResponse({"message" : "KEY_ERROR"}, status=400)
+        except Appointment.DoesNotExist:
+            return JsonResponse({"message" : "APPOINTMENT_DOES_NOT_EXIST"}, status=404)
