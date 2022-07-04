@@ -1,7 +1,5 @@
 from datetime import datetime, date, time, timedelta
 
-from itertools import chain, groupby
-
 from django.http                import JsonResponse
 from django.views               import View
 from django.conf                import settings
