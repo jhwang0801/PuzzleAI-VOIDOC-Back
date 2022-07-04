@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from itertools import chain
+from itertools import chain, groupby
 
 from django.http                import JsonResponse
 from django.views               import View
@@ -98,9 +98,7 @@ class AppointmentListView(View):
     @login_decorator
     def get(self, request, patient_id):
         try: 
-            # page    = request.GET.get('page', 1)
-            # Retrieve information about which appointments the patient_id is associated with
-            # Then, annotate the information about each appointment the patient is in
+            page    = request.GET.get('page', 1)
             appointment_info = Appointment.objects.filter(userappointment__patient_id=patient_id)\
                 .values('id','state_id', 'date', 'time')
             
@@ -112,13 +110,19 @@ class AppointmentListView(View):
                     profile_imgs = Concat(V(f'{settings.LOCAL_PATH}/doctor_profile_img/'), 'doctor__profile_img', output_field=CharField())
                 ).values('id', 'doctors', 'departments', 'hospitals', 'profile_imgs')
             
-            appointments = list(chain(appointment_info, appointment_people))
+            # appointments = list(chain(appointment_info, appointment_people))
 
-            # appointments_list = list(chain(appointment_info, appointment_people))
+            lst = sorted(chain(appointment_info, appointment_people), key=lambda x:x['id'])
+            appointments = []
+            for k,v in groupby(lst, key=lambda x:x['id']):
+                d = {}
+                for dct in v:
+                    d.update(dct)
+                appointments.append(d)
 
-            # doctors_paginator = Paginator(doctors, 6).page(page).object_list
+            appointments_paginator = Paginator(appointments, 4).page(page).object_list
 
-            return JsonResponse({"result" : appointments}, status=200)
+            return JsonResponse({"result" : list(appointments_paginator)}, status=200)
 
         except PageNotAnInteger:
             return JsonResponse({'message' : 'PAGE_HAS_TO_BE_AN_INTEGER'})
