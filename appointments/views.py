@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date, time, timedelta
 
 from django.http                import JsonResponse
 from django.views               import View
@@ -78,3 +78,23 @@ class WorkingTimeView(View):
         working_time_list       = [working_time.time.strftime("%H:%M") for working_time in working_times]
 
         return JsonResponse({'working_time' : working_time_list, 'appointmented_time' : appointmented_time_list}, status=200)
+
+class CancellationView(View):
+    @login_decorator
+    def patch(self, request, appointment_id):
+        try:
+            appointment = Appointment.objects.get(id=appointment_id, userappointment__patient_id=request.user.id)
+            appointment_datetime = datetime.combine(appointment.date, appointment.time)
+
+            if appointment_datetime - datetime.now() < timedelta(seconds=3600):
+                return JsonResponse({'message' : 'APPOINTMENTS_CAN_BE_CANCELLED_ONLY_AN_HOUR_PRIOR_TO_THE_SCHEDULED_TIME'}, status=400)
+
+            if appointment.state.id == 1:
+                Appointment.objects.filter(id=appointment_id).update(state_id = 2)
+                return JsonResponse({'message' : 'APPOINTMENT_HAS_BEEN_CANCELED'}, status=200)
+            else:
+                return JsonResponse({'message' : 'ALREADY_CANCELED_OR_CLOSED_APPOINTMENT'}, status = 400)
+        except KeyError:
+            return JsonResponse({"message" : "KEY_ERROR"}, status=400)
+        except Appointment.DoesNotExist:
+            return JsonResponse({"message" : "APPOINTMENT_DOES_NOT_EXIST"}, status=404)
