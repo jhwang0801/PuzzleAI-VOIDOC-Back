@@ -5,11 +5,12 @@ from itertools import chain, groupby
 from django.http                import JsonResponse
 from django.views               import View
 from django.conf                import settings
+from django.core                import serializers
 from django.core.paginator      import Paginator, PageNotAnInteger, EmptyPage
-from django.db.models           import CharField, Value as V, Q
+from django.db.models           import CharField, IntegerField, Value as V, Q, Func, F, ExpressionWrapper
 from django.db.models.functions import Concat
 
-from users.utils  import login_decorator
+from users.utils  import login_decorator, DateTimeFormat
 from users.models import Department, Doctor, WorkingDay, WorkingTime
 from appointments.models import Appointment, UserAppointment
 
@@ -81,40 +82,33 @@ class WorkingTimeView(View):
 
         return JsonResponse({'working_time' : working_time_list, 'appointmented_time' : appointmented_time_list}, status=200)
 
-
-# TODO:
-
-"""
-- Create AppointmentsListView:
-    - [GET] : Retrieve info from DB about details of appointments and people directly connected to appointments
-    - Use paginator to display all of the current appointments for a user
-    - Keep track of information connecting to the user, doctor, department, hospital, appointment, and state
-        - Where these models are located:
-            - Users: CustomUser, Doctor, Department, Hospital
-            - Appointments: Appointment, State
-"""
-class AppointmentListView(View):
-    # Add a url to appointments/urls.py
+class AppointmentListView(View, DateTimeFormat):
     @login_decorator
-    def get(self, request, patient_id):
+    def get(self, request):
         try: 
             page    = request.GET.get('page', 1)
+            patient_id = request.user.id
             appointment_info = Appointment.objects.filter(userappointment__patient_id=patient_id)\
-                .values('id','state_id', 'date', 'time')
+                .annotate(
+                    appointment_id = Concat(V(''), 'id', output_field=IntegerField()),
+                    appointment_date = Concat(V(''), 
+                        Func(F('date'), V('%m-%d-%Y(%W) '), function='DATE_FORMAT', output_field=CharField()), 
+                        Func(F('time'), V('%p %h:%i'), function='TIME_FORMAT', output_field=CharField()),
+                        output_field=CharField()), 
+                    state_name     = Concat(V(''), 'state_id', output_field=CharField()),
+                ).values('appointment_id', 'appointment_date', 'state_name')
             
             appointment_people = UserAppointment.objects.filter(patient_id=patient_id)\
                 .annotate(
-                    doctors     = Concat(V(''), 'doctor__user__name', output_field=CharField()),
-                    departments  = Concat(V(''), 'doctor__department__name', output_field=CharField()),
-                    hospitals    = Concat(V(''), 'doctor__hospital__name', output_field=CharField()),
-                    profile_imgs = Concat(V(f'{settings.LOCAL_PATH}/doctor_profile_img/'), 'doctor__profile_img', output_field=CharField())
-                ).values('id', 'doctors', 'departments', 'hospitals', 'profile_imgs')
-            
-            # appointments = list(chain(appointment_info, appointment_people))
+                    doctor_name  = Concat(V(''), 'doctor__user__name', output_field=CharField()),         
+                    doctor_hospital    = Concat(V(''), 'doctor__hospital__name', output_field=CharField()),
+                    doctor_department  = Concat(V(''), 'doctor__department__name', output_field=CharField()),
+                    doctor_profile_img = Concat(V(f'{settings.LOCAL_PATH}/doctor_profile_img/'), 'doctor__profile_img', output_field=CharField())
+                ).values('appointment_id', 'doctor_name', 'doctor_hospital', 'doctor_department', 'doctor_profile_img')
 
-            lst = sorted(chain(appointment_info, appointment_people), key=lambda x:x['id'])
+            lst = sorted(chain(appointment_info, appointment_people), key=lambda x:x['appointment_id'])
             appointments = []
-            for k,v in groupby(lst, key=lambda x:x['id']):
+            for k,v in groupby(lst, key=lambda x:x['appointment_id']):
                 d = {}
                 for dct in v:
                     d.update(dct)
@@ -130,36 +124,20 @@ class AppointmentListView(View):
         except EmptyPage:
             return JsonResponse({'message' : 'THE_GIVEN_PAGE_CONTAINS_NOTHING'})
 
-"""
-- Create AppointmentView:
-    - [GET] : Retrieve info about details of the appointment (date, time, doctor)
-    - [POST] : Create a new appointment. Send info about details of the appointment/injury, confirmation of appointment
-        - Later, also post a doctor's opinion (initially, it will be empty in the post)
-    - [PATCH] : Update the field "appointment.opinion" with the doctor's opinion on the symptom
-        - Also needed to cancel/update the appointment
-    - [DELETE] : If appointment is canceled, allow space for a different/new appointment
-    - Similar to the SignupView:
-        - Models/Information: Appointment, State, AppointmentImage, UserAppointment
-        - First, retrieve details about the appointment:
-            - Includes: symptom, time created/updated, date/time of appointment, state (waiting/canceled/completed for treatment)
-            - AppointmentImage: Can include either 0, 1, or multiple
-            - Also has information about doctor -> included in UserAppointment
-        - Next, validate that the appointment will be created; probably separate method in users/utils.py
-        - Then, create the correct objects (UserAppointment and the corresponding Appointment)
-            - This is assuming that the State and AppointmentImage objects are already created and are included when retrieving details about said appointment
-
-"""
-
-class AppointmentView(View):
+class AppointmentDetailView(View):
     @login_decorator
-    def get(self, request, patient_id, appointment_id):
-        # This is similar to the get in appointmentlistview, just slightly different bc other parameters in method call.
-        return JsonResponse({"result" : 'empty'}, status=200)
-
-    def post(self, request, doctor_id, patient_id):
-
-        return JsonResponse({"result" : 'empty'}, status=200)
-
-    def patch(self, request, appointment_id):
-
-        return JsonResponse({"result" : 'empty'}, status=200)
+    def get(self, request, appointment_id):
+        patient_id = request.user.id
+        appointment_info = Appointment.objects.filter(userappointment__patient_id=patient_id, userappointment__appointment_id=appointment_id)\
+            .annotate(
+                Wound_img   = Concat(V(f'{settings.LOCAL_PATH}/media/wound_img/'), 'appointmentimage__wound_img', output_field=CharField()),
+                patient_symptom = Concat(V(''), 'symptom', output_field=CharField()),
+                doctor_opinion = Concat(V(''), 'opinion', output_field=CharField()),
+                appointment_date = Concat(V(''), 
+                        Func(F('date'), V('%m-%d-%Y(%W) '), function='DATE_FORMAT', output_field=CharField()), 
+                        Func(F('time'), V('%p %h:%i'), function='TIME_FORMAT', output_field=CharField()),
+                        output_field=CharField())
+            ).values('Wound_img','patient_symptom', 'doctor_opinion', 'appointment_date')
+        
+            
+        return JsonResponse({"result" : list(appointment_info)}, status=200)
