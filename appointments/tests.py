@@ -7,7 +7,7 @@ from django.conf                    import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 from users.models        import CustomUser, Department, Hospital, Doctor, WorkingDay, WorkingTime
-from appointments.models import Appointment, State, UserAppointment
+from appointments.models import Appointment, AppointmentImage, State, UserAppointment
 
 class DepartmentsListTest(TestCase):
     def setUp(self):
@@ -711,6 +711,7 @@ class AppointmentCreationTest(TestCase):
         Doctor.objects.all().delete()
         Appointment.objects.all().delete()
         UserAppointment.objects.all().delete()
+        AppointmentImage.objects.get()
 
     def test_success_appointment_creation(self):
         client  = Client()
@@ -740,37 +741,7 @@ class AppointmentCreationTest(TestCase):
         response = client.post('/appointments/create', form_data, **headers)
 
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.json(), {'message' : 'YOUR_APPOINTMENT_HAS_BEEN_CREATED'})
-
-    def test_fail_returned_more_than_one_appointment(self):
-        client  = Client()
-        headers = {"HTTP_Authorization" : self.token}
-        doctor  = Doctor.objects.get(id=1)
-        patient = CustomUser.objects.get(is_doctor=False)
-
-        test_date  = datetime(2023, 1, 1, 13, 0)
-        test_year  = test_date.year
-        test_month = test_date.month
-        test_day   = test_date.day
-        test_time  = test_date.hour
-
-        image_mock = SimpleUploadedFile('testcode_image.png', b'')
-
-        form_data = {
-            'patient_id': patient.id,
-            'doctor_id' : doctor.id,
-            'year'      : test_year,
-            'month'     : test_month,
-            'day'       : test_day,
-            'time'      : test_time,
-            'symptom'   : "symptom",
-            'image'     : [image_mock]
-        }
-
-        response = client.post('/appointments/create', form_data, **headers)
-
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json(), {'message' : 'RETURNED_MORE_THAN_ONE_APPOINTMENT'})
+        self.assertEqual(response.json(), {'message' : 'YOUR_APPOINTMENT_IS_CREATED'})
 
     def test_fail_appointment_creation_key_error(self):
         client  = Client()

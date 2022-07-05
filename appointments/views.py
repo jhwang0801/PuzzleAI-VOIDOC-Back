@@ -119,16 +119,15 @@ class AppointmentCreationView(View):
                 return JsonResponse({'message' : 'DO_NOT_ALLOW_TO_UPLOAD_IMAGES_MORE_THAN_6'}, status=400)
 
             with transaction.atomic():
-                Appointment.objects.create(
+                new_appointment = Appointment.objects.create(
                     symptom  = symptom,
                     date     = selected_date,
                     time     = selected_time,
                     state_id = 1
                 )
 
-                appointment= Appointment.objects.get(date=selected_date, time=selected_time)
                 UserAppointment.objects.create(
-                    appointment_id = appointment.id,
+                    appointment_id = new_appointment.id,
                     doctor_id      = doctor_id,
                     patient_id     = patient_id
                 )
@@ -136,13 +135,9 @@ class AppointmentCreationView(View):
                 AppointmentImage.objects.bulk_create([
                     AppointmentImage(
                         wound_img      = image,
-                        appointment_id = appointment.id
+                        appointment_id = new_appointment.id
                     ) for image in images
                 ])
-                return JsonResponse({'message' : 'YOUR_APPOINTMENT_HAS_BEEN_CREATED'}, status = 201)
-        except Appointment.MultipleObjectsReturned:
-            return JsonResponse({'message' : 'RETURNED_MORE_THAN_ONE_APPOINTMENT'}, status = 400)
+                return JsonResponse({'message' : 'YOUR_APPOINTMENT_IS_CREATED'}, status = 201)
         except KeyError:
             return JsonResponse({"message" : "KEY_ERROR"}, status=400)
-        except Appointment.DoesNotExist:
-            return JsonResponse({"message" : "APPOINTMENT_DOES_NOT_EXIST"}, status=404)
