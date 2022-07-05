@@ -732,7 +732,7 @@ class AppointmentCreationTest(TestCase):
         test_day   = test_date.day
         test_time  = test_date.hour
 
-        image_mock = SimpleUploadedFile('image.png', b'')
+        image_mock = SimpleUploadedFile('testcode_image.png', b'')
 
         form_data = {
             'patient_id': patient.id,

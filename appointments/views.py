@@ -12,7 +12,6 @@ from users.utils         import login_decorator
 from users.models        import Department, Doctor, WorkingDay, WorkingTime
 from appointments.models import Appointment, AppointmentImage, UserAppointment
 
-
 class DepartmentsListView(View):
     @login_decorator
     def get(self, request):
