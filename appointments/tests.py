@@ -6,7 +6,6 @@ from django.test                    import TestCase, Client
 from django.conf                    import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-
 from users.models        import CustomUser, Department, Hospital, Doctor, WorkingDay, WorkingTime
 from appointments.models import Appointment, State, UserAppointment
 
@@ -609,13 +608,6 @@ class CancellationTest(TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json(), {'message' : 'APPOINTMENT_DOES_NOT_EXIST'})
 
-
-
-
-
-
-
-
 class AppointmentCreationTest(TestCase):
     def setUp(self):
         CustomUser.objects.create_user(
@@ -762,7 +754,7 @@ class AppointmentCreationTest(TestCase):
         test_day   = test_date.day
         test_time  = test_date.hour
 
-        image_mock = SimpleUploadedFile('image.png', b'')
+        image_mock = SimpleUploadedFile('testcode_image.png', b'')
 
         form_data = {
             'patient_id': patient.id,
@@ -792,7 +784,7 @@ class AppointmentCreationTest(TestCase):
         test_day   = test_date.day
         test_time  = test_date.hour
 
-        image_mock = SimpleUploadedFile('image.png', b'')
+        image_mock = SimpleUploadedFile('testcode_image.png', b'')
 
         form_data = {
             'patient_id': patient.id,
@@ -822,7 +814,7 @@ class AppointmentCreationTest(TestCase):
         test_day   = test_date.day
         test_time  = test_date.hour
 
-        image_mock = SimpleUploadedFile('image.png', b'')
+        image_mock = SimpleUploadedFile('testcode_image.png', b'')
 
         form_data = {
             'patient_id': patient.id,
