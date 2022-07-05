@@ -3,7 +3,7 @@ import json
 from django.test import TestCase, Client, TransactionTestCase
 
 from users.models import CustomUser
-from users.utils  import generate_jwt
+from users.utils  import Validation
 
 class SignUpTest(TestCase):
     def setUp(self):
@@ -118,7 +118,7 @@ class SignUpIntegrityTest(TransactionTestCase):
             'message': "EMAIL_IS_ALREADY_REGISTERED"
         }) 
 
-class LoginTest(TestCase):
+class LoginTest(TestCase, Validation):
     def setUpTestData():
         CustomUser.objects.create_user(
             name      = 'kevin',
@@ -151,7 +151,7 @@ class LoginTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {
             'message'     : 'SUCCESS_PATIENT_LOGIN',
-            'access_token': generate_jwt(user),
+            'access_token': self.generate_jwt(user),
             'user_id'     : user.id,
             'user_name'   : user.name
         })
@@ -185,7 +185,7 @@ class LoginTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {
             'message'     : 'SUCCESS_LOGIN',
-            'access_token': generate_jwt(user),
+            'access_token': self.generate_jwt(user),
             'user_id'     : user.id,
             'user_name'   : user.name
         })
@@ -204,7 +204,7 @@ class LoginTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {
             'message'     : 'SUCCESS_LOGIN',
-            'access_token': generate_jwt(doctor),
+            'access_token': self.generate_jwt(doctor),
             'user_id'          : doctor.id,
             'user_name'        : doctor.name
             }
