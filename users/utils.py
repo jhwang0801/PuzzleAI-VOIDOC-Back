@@ -20,6 +20,7 @@ def check_duplicate_email(email):
     if CustomUser.objects.filter(email = email).exists():
         raise IntegrityError
 
+
 def generate_jwt(user):
     payload      = {'user_id': user.id, 'exp': datetime.now() +timedelta(hours=2)}
     access_token = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
