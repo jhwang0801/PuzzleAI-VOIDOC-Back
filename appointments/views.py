@@ -7,8 +7,8 @@ from django.core.paginator      import Paginator, PageNotAnInteger, EmptyPage
 from django.db.models           import CharField, Value as V, Q
 from django.db.models.functions import Concat
 
-from users.utils  import login_decorator
-from users.models import Department, Doctor, WorkingDay, WorkingTime
+from users.utils         import login_decorator
+from users.models        import Department, Doctor, WorkingDay, WorkingTime
 from appointments.models import Appointment
 
 class DepartmentsListView(View):
