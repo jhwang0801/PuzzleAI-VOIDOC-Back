@@ -131,11 +131,11 @@ class AppointmentCreationView(View):
                     doctor_id      = doctor_id,
                     patient_id     = patient_id
                 )
-
+                
                 AppointmentImage.objects.bulk_create([
                     AppointmentImage(
-                        wound_img      = image,
-                        appointment_id = new_appointment.id
+                        appointment_id = new_appointment.id,
+                        wound_img      = image
                     ) for image in images
                 ])
                 return JsonResponse({'message' : 'YOUR_APPOINTMENT_IS_CREATED'}, status = 201)

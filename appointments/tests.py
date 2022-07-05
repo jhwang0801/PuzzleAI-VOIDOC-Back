@@ -711,7 +711,6 @@ class AppointmentCreationTest(TestCase):
         Doctor.objects.all().delete()
         Appointment.objects.all().delete()
         UserAppointment.objects.all().delete()
-        AppointmentImage.objects.get()
 
     def test_success_appointment_creation(self):
         client  = Client()
