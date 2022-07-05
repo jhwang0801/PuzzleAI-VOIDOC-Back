@@ -111,7 +111,7 @@ class AppointmentDetailView(View, DateTimeFormat):
         try:
             appointment = Appointment.objects.get(userappointment__patient_id=request.user.id, userappointment__appointment_id=appointment_id)
             appointment_detail = {    
-                "Wound_img"       : [f'{settings.LOCAL_PATH}/{image.wound_img}' for image in appointment.appointmentimage_set.all()],  
+                "Wound_img"       : [f'{settings.LOCAL_PATH}/wound_img/{image.wound_img}' for image in appointment.appointmentimage_set.all()],  
                 "patient_symptom"   : appointment.symptom,
                 "doctor_opinion"    : appointment.opinion,
                 "appointment_date"  : self.format_date_time(appointment.date, appointment.time)

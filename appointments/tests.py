@@ -727,7 +727,7 @@ class AppointmentDetailTest(TestCase):
             {
                 "result": {
                     "Wound_img": [
-                        "127.0.0.1:8000/media/ouch.png"
+                        "127.0.0.1:8000/media/wound_img/ouch.png"
                     ],
                     "patient_symptom": "cold",
                     "doctor_opinion": "blanket",
