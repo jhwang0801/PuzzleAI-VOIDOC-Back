@@ -112,14 +112,13 @@ class AppointmentDetailView(View, DateTimeFormat):
         try:
             appointment = Appointment.objects.get(id=appointment_id)
             appointment_detail = {    
-                "Wound_img"       : [f'{settings.LOCAL_PATH}/wound_img/{image.wound_img}' for image in appointment.appointmentimage_set.all()],  
+                "Wound_img"         : [f'{settings.LOCAL_PATH}/{image.wound_img}' for image in appointment.appointmentimage_set.all()],  
                 "patient_symptom"   : appointment.symptom,
                 "doctor_opinion"    : appointment.opinion,
                 "appointment_date"  : self.format_date_time(appointment.date, appointment.time)
             }
 
             return JsonResponse({'result' : appointment_detail}, status=200)
-        
         except Appointment.DoesNotExist:
             return JsonResponse({'message' : 'APPOINTMENT_DOES_NOT_EXIST'}, status=404)
 
@@ -184,3 +183,52 @@ class AppointmentCreationView(View):
                 return JsonResponse({'message' : 'YOUR_APPOINTMENT_IS_CREATED'}, status = 201)
         except KeyError:
             return JsonResponse({"message" : "KEY_ERROR"}, status=400)
+
+class AppointmentChangeView(View):
+    @login_decorator
+    def post(self, request, appointment_id):
+        try:
+            doctor_id            = int(request.POST['doctor_id'])
+            appointmented_year   = int(request.POST['year'])
+            appointmented_month  = int(request.POST['month'])
+            appointmented_day    = int(request.POST['day'])
+            appointmented_time   = int(request.POST['time'])
+            symptom              = request.POST['symptom']
+            images               = request.FILES.getlist('image')
+            selected_date        = date(appointmented_year, appointmented_month, appointmented_day)
+            selected_time        = time(appointmented_time)
+            appointment          = Appointment.objects.get(id=appointment_id, userappointment__patient_id=request.user.id)
+            appointment_datetime = datetime.combine(appointment.date, appointment.time)
+
+            if appointment_datetime - datetime.now() < timedelta(seconds=3600):
+                return JsonResponse({'message' : 'NOT_ALLOW_TO_RESCHEDULE_YOUR_APPOINTMENT_AN_HOUR_PRIOR_TO_YOUR_SCHEDULED_TIME'}, status=400)
+
+            if len(images) > 6:
+                return JsonResponse({'message' : 'NOT_ALLOW_TO_UPLOAD_IMAGES_MORE_THAN_6'}, status=400)
+
+            with transaction.atomic():
+                Appointment.objects.filter(id=appointment_id).update(
+                    symptom    = symptom,
+                    date       = selected_date,
+                    time       = selected_time,
+                    updated_at = datetime.now(),
+                    state_id   = 1
+                )
+
+                UserAppointment.objects.filter(appointment_id = appointment_id).update(
+                    doctor_id = doctor_id
+                )
+
+                AppointmentImage.objects.filter(appointment_id=appointment_id).delete()
+                AppointmentImage.objects.bulk_create([
+                    AppointmentImage(
+                        wound_img      = image,
+                        appointment_id = appointment_id
+                    ) for image in images
+                ])
+
+                return JsonResponse({'message' : 'YOUR_APPOINTMENT_HAS_BEEN_CHANGED'}, status = 201)
+        except KeyError:
+            return JsonResponse({"message" : "KEY_ERROR"}, status=400)
+        except Appointment.DoesNotExist:
+            return JsonResponse({"message" : "APPOINTMENT_DOES_NOT_EXIST"}, status=404)

@@ -1,6 +1,6 @@
 from django.urls import path
 
-from appointments.views import DepartmentsListView, DoctorListView, WorkingDayView, WorkingTimeView, CancellationView, AppointmentCreationView, AppointmentListView, AppointmentDetailView
+from appointments.views import DepartmentsListView, DoctorListView, WorkingDayView, WorkingTimeView, CancellationView, AppointmentChangeView, AppointmentCreationView, AppointmentListView, AppointmentDetailView
 
 urlpatterns = [
     path('/departments', DepartmentsListView.as_view()),
@@ -10,5 +10,6 @@ urlpatterns = [
     path('/list', AppointmentListView.as_view()),
     path('/<int:appointment_id>', AppointmentDetailView.as_view()),
     path('/<int:appointment_id>/cancellation', CancellationView.as_view()),
+    path('/<int:appointment_id>/change', AppointmentChangeView.as_view()),
     path('/create', AppointmentCreationView.as_view())
 ]
