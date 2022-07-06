@@ -1,12 +1,13 @@
 import jwt
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date, time
 
-from django.test import TestCase, Client
-from django.conf import settings
+from django.test                    import TestCase, Client
+from django.conf                    import settings
+from django.core.files.uploadedfile import SimpleUploadedFile
 
-from users.models import CustomUser, Department, Hospital, Doctor, WorkingDay, WorkingTime
-from appointments.models import Appointment, State, UserAppointment, AppointmentImage
+from users.models        import CustomUser, Department, Hospital, Doctor, WorkingDay, WorkingTime
+from appointments.models import Appointment, AppointmentImage, State, UserAppointment
 
 class DepartmentsListTest(TestCase):
     def setUp(self):
@@ -607,6 +608,200 @@ class CancellationTest(TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json(), {'message' : 'APPOINTMENT_DOES_NOT_EXIST'})
 
+class AppointmentCreationTest(TestCase):
+    def setUp(self):
+        CustomUser.objects.create_user(
+            name      = 'kevin',
+            email     = 'kevin@gmail.com',
+            password  = 'kevin1123',
+            is_doctor = 'False'
+        )
+        
+        CustomUser.objects.create_user(
+            name      = 'doctor',
+            email     = 'doctor@gmail.com',
+            password  = 'doctor123',
+            is_doctor = 'True'
+        )
+
+        doc     = CustomUser.objects.get(is_doctor=True)
+        patient = CustomUser.objects.get(is_doctor=False)
+
+        Department.objects.create(
+            id        = 1,
+            name      = "가정의학과",
+            thumbnail = "family_medicine.png"
+        )
+
+        Hospital.objects.create(
+            id   = 1,
+            name = "퍼즐AI병원"
+        )
+
+        department = Department.objects.get(name="가정의학과")
+        hospital = Hospital.objects.get(name="퍼즐AI병원")
+
+        Doctor.objects.create(
+            id            = 1,
+            user_id       = doc.id,
+            department_id = department.id,
+            hospital_id   = hospital.id,
+            profile_img   = "doctor_profile.png"
+        )
+
+        doctor = Doctor.objects.get(id=1)
+
+        State.objects.bulk_create([
+            State(
+                id   = 1,
+                name = "진료대기"
+            ),
+            State(
+                id   = 2,
+                name = "진료취소"
+            ),
+            State(
+                id   = 3,
+                name = "진료완료"
+            )
+        ])
+
+        five_days_after    = datetime.now() + timedelta(days=5)
+
+        Appointment.objects.bulk_create([
+            Appointment(            
+                id         = 1,
+                symptom    = "아파요",
+                opinion    = "괜찮아요",
+                date       = five_days_after.date(),
+                time       = five_days_after.time(),
+                state_id   = 1
+            ),
+            Appointment(            
+                id         = 2,
+                symptom    = "아파요",
+                opinion    = "괜찮아요",
+                date       = date(2023, 1, 1),
+                time       = time(13, 0),
+                state_id   = 1
+            )
+        ])
+
+        UserAppointment.objects.bulk_create([
+            UserAppointment(
+                id             = 1,
+                appointment_id = 1,
+                doctor_id      = doctor.id,
+                patient_id     = patient.id
+            ),
+            UserAppointment(
+                id             = 2,
+                appointment_id = 2,
+                doctor_id      = doctor.id,
+                patient_id     = patient.id
+            )
+        ])
+
+        self.token = jwt.encode({"user_id" : CustomUser.objects.get(is_doctor=False).id}, settings.SECRET_KEY, algorithm = settings.ALGORITHM)
+        
+    def tearDown(self):
+        CustomUser.objects.all().delete()
+        Department.objects.all().delete()
+        Hospital.objects.all().delete()
+        Doctor.objects.all().delete()
+        Appointment.objects.all().delete()
+        UserAppointment.objects.all().delete()
+
+    def test_success_appointment_creation(self):
+        client  = Client()
+        headers = {"HTTP_Authorization" : self.token}
+        doctor  = Doctor.objects.get(id=1)
+        patient = CustomUser.objects.get(is_doctor=False)
+
+        test_date  = datetime.now() + timedelta(days=2)
+        test_year  = test_date.year
+        test_month = test_date.month
+        test_day   = test_date.day
+        test_time  = test_date.hour
+
+        image_mock = SimpleUploadedFile('testcode_image.png', b'')
+
+        form_data = {
+            'patient_id': patient.id,
+            'doctor_id' : doctor.id,
+            'year'      : test_year,
+            'month'     : test_month,
+            'day'       : test_day,
+            'time'      : test_time,
+            'symptom'   : "symptom",
+            'image'     : [image_mock]
+        }
+
+        response = client.post('/appointments/create', form_data, **headers)
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json(), {'message' : 'YOUR_APPOINTMENT_IS_CREATED'})
+
+    def test_fail_appointment_creation_key_error(self):
+        client  = Client()
+        headers = {"HTTP_Authorization" : self.token}
+        doctor  = Doctor.objects.get(id=1)
+        patient = CustomUser.objects.get(is_doctor=False)
+
+        test_date  = datetime.now() + timedelta(days=2)
+        test_year  = test_date.year
+        test_month = test_date.month
+        test_day   = test_date.day
+        test_time  = test_date.hour
+
+        image_mock = SimpleUploadedFile('testcode_image.png', b'')
+
+        form_data = {
+            'patient_id': patient.id,
+            'doctor_id' : doctor.id,
+            'years'     : test_year,
+            'months'    : test_month,
+            'days'      : test_day,
+            'time'      : test_time,
+            'symptom'   : "symptom",
+            'image'     : [image_mock]
+        }
+
+        response = client.post('/appointments/create', form_data, **headers)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(), {'message' : 'KEY_ERROR'})
+
+    def test_fail_creation_image_limitation(self):
+        client  = Client()
+        headers = {"HTTP_Authorization" : self.token}
+        doctor  = Doctor.objects.get(id=1)
+        patient = CustomUser.objects.get(is_doctor=False)
+
+        test_date  = datetime.now() + timedelta(days=2)
+        test_year  = test_date.year
+        test_month = test_date.month
+        test_day   = test_date.day
+        test_time  = test_date.hour
+
+        image_mock = SimpleUploadedFile('testcode_image.png', b'')
+
+        form_data = {
+            'patient_id': patient.id,
+            'doctor_id' : doctor.id,
+            'year'      : test_year,
+            'month'     : test_month,
+            'day'       : test_day,
+            'time'      : test_time,
+            'symptom'   : "symptom",
+            'image'     : [image_mock, image_mock, image_mock, image_mock, image_mock, image_mock, image_mock]
+        }
+
+        response = client.post('/appointments/create', form_data, **headers)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(), {'message' : 'DO_NOT_ALLOW_TO_UPLOAD_IMAGES_MORE_THAN_6'})
+
 class AppointmentListTest(TestCase):
     def setUp(self):
         CustomUser.objects.create_user(
@@ -620,6 +815,7 @@ class AppointmentListTest(TestCase):
             name      = 'doctor',
             email     = 'doctor@gmail.com',
             password  = 'doctor1234',
+            
             is_doctor = 'True'
         )
 
