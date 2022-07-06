@@ -1065,8 +1065,6 @@ class AppointmentDetailTest(TestCase):
         client  = Client()
         headers = {"HTTP_Authorization" : self.token}
 
-        appointment_id = Appointment.objects.get(id=1)
-
         response = client.get(f'/appointments/1', **headers, content_type='application/json')
 
         self.assertEqual(response.status_code, 200)
@@ -1081,4 +1079,15 @@ class AppointmentDetailTest(TestCase):
                     "appointment_date": "2022-08-01(월) 오후 2:00"
                 }
             }
+        )
+
+    def test_fail_appointment_does_not_exist(self):
+        client  = Client()
+        headers = {"HTTP_Authorization" : self.token}
+
+        response = client.get(f'/appointments/2', **headers, content_type='application/json')
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json(),
+            {'message' : 'APPOINTMENT_DOES_NOT_EXIST'}
         )

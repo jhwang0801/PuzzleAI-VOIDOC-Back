@@ -121,7 +121,7 @@ class AppointmentDetailView(View, DateTimeFormat):
             return JsonResponse({'result' : appointment_detail}, status=200)
         
         except Appointment.DoesNotExist:
-            return JsonResponse({'APPOINTMENT_DOES_NOT_EXIST'}, status=404)
+            return JsonResponse({'message' : 'APPOINTMENT_DOES_NOT_EXIST'}, status=404)
 
 class CancellationView(View):
     @login_decorator
