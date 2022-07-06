@@ -92,12 +92,12 @@ class CheckDuplicateEmailView(View, Validation):
         except KeyError:
             return JsonResponse({'message' : 'KEY_ERROR'}, status = 400)
 
-class PasswordResetView(View, Validation):
+class PasswordChangeView(View, Validation):
     def post(self, request):
         data            = json.loads(request.body)
         email           = data['email']
         old_password    = data['old_password']
-        new_password    = data['password']
+        new_password    = data['new_password']
         try:
             user = CustomUser.objects.get(email=email)
             user.check_password(old_password)

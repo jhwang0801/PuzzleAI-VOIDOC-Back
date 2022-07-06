@@ -315,7 +315,7 @@ class CheckDuplicateEmailIntegrityTest(TransactionTestCase):
             'message': "EMAIL_IS_ALREADY_REGISTERED"
         }) 
 
-class PasswordResetTest(TestCase, Validation):
+class PasswordChangeTest(TestCase, Validation):
     def setUp(self):
         CustomUser.objects.create_user(
             name      = 'john',
@@ -329,22 +329,27 @@ class PasswordResetTest(TestCase, Validation):
 
     def test_success_change_password_success_login(self):
         client = Client()
-        old_user = {
+        old_data = {
             'email' : 'john@gmail.com',
             'password' : 'john1234'
         }
-        data = {
+        change_data = {
+            'email' : 'john@gmail.com',
+            'old_password' : 'john1234',
+            'new_password' : 'john7980'
+        }
+        new_data = {
             'email' : 'john@gmail.com',
             'password' : 'john7980'
         }
         headers  = {"HTTP_TYPE_OF_APPLICATION" : "web"}
-        email = data['email']
-        new_password = data['password']
+        email = old_data['email']
+        new_password = change_data['new_password']
 
         user = CustomUser.objects.get(email=email)
 
         # Check login works with old user
-        response = client.post('/users/login', json.dumps(old_user), content_type='application/json', **headers)
+        response = client.post('/users/login', json.dumps(old_data), content_type='application/json', **headers)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {
@@ -354,8 +359,8 @@ class PasswordResetTest(TestCase, Validation):
                 'user_name'   : user.name
             })
         
-        # Check password reset
-        response = client.post('/users/password_reset', json.dumps(data), content_type='application/json')
+        # Check password change
+        response = client.post('/users/password_change', json.dumps(change_data), content_type='application/json')
 
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.json(), {
@@ -365,7 +370,7 @@ class PasswordResetTest(TestCase, Validation):
             }) 
 
         # Check login works with updated credentials
-        response = client.post('/users/login', json.dumps(data), content_type='application/json', **headers)
+        response = client.post('/users/login', json.dumps(new_data), content_type='application/json', **headers)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {
@@ -381,14 +386,15 @@ class PasswordResetTest(TestCase, Validation):
             'email' : 'john@gmail.com',
             'password' : 'john1234'
         }
-        data = {
+        change_data = {
             'email' : 'john@gmail.com',
-            'password' : 'john7980'
+            'old_password' : 'john1234',
+            'new_password' : 'john7980'
         }
 
         headers  = {"HTTP_TYPE_OF_APPLICATION" : "web"}
-        email = data['email']
-        new_password = data['password']
+        email = old_user['email']
+        new_password = change_data['new_password']
 
         user = CustomUser.objects.get(email=email)
 
@@ -404,7 +410,7 @@ class PasswordResetTest(TestCase, Validation):
             })
         
         # Check password reset
-        response = client.post('/users/password_reset', json.dumps(data), content_type='application/json')
+        response = client.post('/users/password_change', json.dumps(change_data), content_type='application/json')
 
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.json(), {
@@ -422,11 +428,12 @@ class PasswordResetTest(TestCase, Validation):
         client = Client()
         data = {
             'email' : 'brian@gmail.com',
-            'password' : 'brian1234'
+            'old_password' : 'brian1234',
+            'new_password' : 'brain8790'
         }
         
         # Check password reset
-        response = client.post('/users/password_reset', json.dumps(data), content_type='application/json')
+        response = client.post('/users/password_change', json.dumps(data), content_type='application/json')
 
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json(), {'message' : 'NO_USER_EXISTS_WITH_THIS_EMAIL'}) 
@@ -435,11 +442,12 @@ class PasswordResetTest(TestCase, Validation):
         client = Client()
         data = {
             'email' : 'john@gmail.com',
-            'password' : 'john1'
+            'old_password' : 'john1234',
+            'new_password' : 'john1'
         }
         
         # Check password reset
-        response = client.post('/users/password_reset', json.dumps(data), content_type='application/json')
+        response = client.post('/users/password_change', json.dumps(data), content_type='application/json')
 
         self.assertEqual(response.json(), {"message": "Enter a valid password."}) 
 
