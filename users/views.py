@@ -104,7 +104,7 @@ class PasswordResetView(View, Validation):
             user.save()
             return JsonResponse({
                 'message' : 'PASSWORD_CHANGED_SUCCESSFULLY',
-                'user_name'   : user.name,
+                'email'   : user.email,
                 'new_password' : new_password,
                 }, status=201) 
         except ObjectDoesNotExist:
