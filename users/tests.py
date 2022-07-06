@@ -314,3 +314,175 @@ class CheckDuplicateEmailIntegrityTest(TransactionTestCase):
         self.assertEqual(response.json(), {
             'message': "EMAIL_IS_ALREADY_REGISTERED"
         }) 
+
+class PasswordResetTest(TestCase, Validation):
+    def setUp(self):
+        CustomUser.objects.create_user(
+            name      = 'john',
+            email     = 'john@gmail.com',
+            password  = 'john1234',
+            is_doctor = 'False'            
+        )
+
+    def tearDown(self):
+        CustomUser.objects.all().delete()
+
+    def test_success_change_password_success_login(self):
+        client = Client()
+        old_user = {
+            'email' : 'john@gmail.com',
+            'password' : 'john1234'
+        }
+        data = {
+            'email' : 'john@gmail.com',
+            'password' : 'john7980'
+        }
+        headers  = {"HTTP_TYPE_OF_APPLICATION" : "web"}
+        email = data['email']
+        new_password = data['password']
+
+        user = CustomUser.objects.get(email=email)
+
+        # Check login works with old user
+        response = client.post('/users/login', json.dumps(old_user), content_type='application/json', **headers)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+                'message'     : 'SUCCESS_LOGIN',
+                "access_token": self.generate_jwt(user),
+                'user_id'     : user.id,
+                'user_name'   : user.name
+            })
+        
+        # Check password reset
+        response = client.post('/users/password_reset', json.dumps(data), content_type='application/json')
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json(), {
+            'message' : 'PASSWORD_CHANGED_SUCCESSFULLY',
+            'user_name'   : user.name,
+            'new_password' : new_password,
+            }) 
+
+        # Check login works with updated credentials
+        response = client.post('/users/login', json.dumps(data), content_type='application/json', **headers)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+                'message'     : 'SUCCESS_LOGIN',
+                "access_token": self.generate_jwt(user),
+                'user_id'     : user.id,
+                'user_name'   : user.name
+            })
+
+    def test_success_change_password_fail_login(self):    
+        client = Client()
+        old_user = {
+            'email' : 'john@gmail.com',
+            'password' : 'john1234'
+        }
+        data = {
+            'email' : 'john@gmail.com',
+            'password' : 'john7980'
+        }
+
+        headers  = {"HTTP_TYPE_OF_APPLICATION" : "web"}
+        email = data['email']
+        new_password = data['password']
+
+        user = CustomUser.objects.get(email=email)
+
+        # Check login works with old user
+        response = client.post('/users/login', json.dumps(old_user), content_type='application/json', **headers)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+                'message'     : 'SUCCESS_LOGIN',
+                "access_token": self.generate_jwt(user),
+                'user_id'     : user.id,
+                'user_name'   : user.name
+            })
+        
+        # Check password reset
+        response = client.post('/users/password_reset', json.dumps(data), content_type='application/json')
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json(), {
+            'message' : 'PASSWORD_CHANGED_SUCCESSFULLY',
+            'user_name'   : user.name,
+            'new_password' : new_password,
+            }) 
+
+        # Check login fails with old user credentials
+        response = client.post('/users/login', json.dumps(old_user), content_type='application/json', **headers)
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json(), {'message' : 'WRONG_EMAIL_OR_PASSWORD'})
+
+    def test_fail_change_password_success_login(self):
+        client = Client()
+        old_user = {
+            'email' : 'john@gmail.com',
+            'password' : 'john1234'
+        }
+        data = {
+            'email' : 'john@gmail.com',
+            'password' : 'john7980'
+        }
+
+        headers  = {"HTTP_TYPE_OF_APPLICATION" : "web"}
+        email = data['email']
+        new_password = data['password']
+
+        user = CustomUser.objects.get(email=email)
+
+        # Check login works with old user
+        response = client.post('/users/login', json.dumps(old_user), content_type='application/json', **headers)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+                'message'     : 'SUCCESS_LOGIN',
+                "access_token": self.generate_jwt(user),
+                'user_id'     : user.id,
+                'user_name'   : user.name
+            })
+        
+        # Check password reset
+        response = client.post('/users/password_reset', json.dumps(data), content_type='application/json')
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json(), {
+            'message' : 'PASSWORD_CHANGED_SUCCESSFULLY',
+            'user_name'   : user.name,
+            'new_password' : new_password,
+            }) 
+
+        # Check login fails with old user credentials
+        response = client.post('/users/login', json.dumps(old_user), content_type='application/json', **headers)
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json(), {'message' : 'WRONG_EMAIL_OR_PASSWORD'})
+
+    def test_fail_user_does_not_exist(self):
+        client = Client()
+        data = {
+            'email' : 'brian@gmail.com',
+            'password' : 'brian1234'
+        }
+        
+        # Check password reset
+        response = client.post('/users/password_reset', json.dumps(data), content_type='application/json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(), {'message' : 'NO_USER_EXISTS_WITH_THIS_EMAIL'}) 
+
+    def test_fail_user_invalid_password_form(self):
+        client = Client()
+        data = {
+            'email' : 'john@gmail.com',
+            'password' : 'john1'
+        }
+        
+        # Check password reset
+        response = client.post('/users/password_reset', json.dumps(data), content_type='application/json')
+
+        self.assertEqual(response.json(), {"message": "Enter a valid password."}) 
+

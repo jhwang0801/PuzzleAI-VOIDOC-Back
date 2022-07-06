@@ -1,14 +1,22 @@
 import jwt
+import re
 
 from datetime import datetime, timedelta
 
 from django.conf     import settings
 from django.http     import JsonResponse
 from django.db.utils import IntegrityError
+from django.forms    import ValidationError
 
 from users.models import CustomUser
 
 class Validation:
+    def validate_password(self, password):
+        REGEX_PASSWORD = '^(?=.*\d)(?=.*[a-zA-Z])[0-9a-zA-Z]{8,}$'
+
+        if not re.match(REGEX_PASSWORD, password):
+            raise ValidationError('Enter a valid password.')
+
     def check_duplicate_email(self, email):
         if CustomUser.objects.filter(email = email).exists():
             raise IntegrityError

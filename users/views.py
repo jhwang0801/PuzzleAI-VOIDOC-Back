@@ -1,23 +1,17 @@
 import json
-import re
 
 from django.views           import View
 from django.http            import JsonResponse
 from django.db.utils        import IntegrityError
 from django.forms           import ValidationError
 from django.core.validators import validate_email
+from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth    import login, authenticate
 
 from users.models import CustomUser
 from users.utils  import Validation
 
 class SignUpView(View, Validation):
-    def validate_password(self, password):
-        REGEX_PASSWORD = '^(?=.*\d)(?=.*[a-zA-Z])[0-9a-zA-Z]{8,}$'
-
-        if not re.match(REGEX_PASSWORD, password):
-            raise ValidationError('Enter a valid password.')
-
     def post(self, request):
         try:
             data = json.loads(request.body)
@@ -97,3 +91,23 @@ class CheckDuplicateEmailView(View, Validation):
             return JsonResponse({'message' : 'EMAIL_IS_ALREADY_REGISTERED'}, status=400)
         except KeyError:
             return JsonResponse({'message' : 'KEY_ERROR'}, status = 400)
+
+class PasswordResetView(View, Validation):
+    def post(self, request):
+        data            = json.loads(request.body)
+        email           = data['email']
+        new_password    = data['password']
+        try:
+            user = CustomUser.objects.get(email=email)
+            self.validate_password(new_password)
+            user.set_password(new_password)
+            user.save()
+            return JsonResponse({
+                'message' : 'PASSWORD_CHANGED_SUCCESSFULLY',
+                'user_name'   : user.name,
+                'new_password' : new_password,
+                }, status=201) 
+        except ObjectDoesNotExist:
+            return JsonResponse({'message' : 'NO_USER_EXISTS_WITH_THIS_EMAIL'}, status=400)
+        except ValidationError as e:
+            return JsonResponse({'message' : e.message}, status=400)
