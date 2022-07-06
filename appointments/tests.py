@@ -692,7 +692,7 @@ class AppointmentDetailTest(TestCase):
 
         AppointmentImage.objects.create(
                 id              = 1,
-                wound_img       = "ouch.png",
+                wound_img       = "wound_img/ouch.png",
                 appointment_id  = appointment.id
         )
 
