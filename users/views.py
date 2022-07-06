@@ -96,9 +96,11 @@ class PasswordResetView(View, Validation):
     def post(self, request):
         data            = json.loads(request.body)
         email           = data['email']
+        old_password    = data['old_password']
         new_password    = data['password']
         try:
             user = CustomUser.objects.get(email=email)
+            user.check_password(old_password)
             self.validate_password(new_password)
             user.set_password(new_password)
             user.save()
