@@ -8,8 +8,8 @@ from django.core.paginator      import Paginator, PageNotAnInteger, EmptyPage
 from django.db.models           import CharField, Value as V, Q
 from django.db.models.functions import Concat
 
-from users.utils         import login_decorator
-from users.models        import Department, Doctor, WorkingDay, WorkingTime
+from users.utils  import login_decorator, DateTimeFormat
+from users.models import Department, Doctor, WorkingDay, WorkingTime
 from appointments.models import Appointment, AppointmentImage, UserAppointment
 
 class DepartmentsListView(View):
@@ -79,6 +79,49 @@ class WorkingTimeView(View):
         working_time_list       = [working_time.time.strftime("%H:%M") for working_time in working_times]
 
         return JsonResponse({'working_time' : working_time_list, 'appointmented_time' : appointmented_time_list}, status=200)
+
+class AppointmentListView(View, DateTimeFormat):
+    @login_decorator
+    def get(self, request):
+        try: 
+            page    = request.GET.get('page', 1)
+            appointments = Appointment.objects.select_related('state').prefetch_related('userappointment_set', 'userappointment_set__doctor', 'userappointment_set__doctor__user', 'userappointment_set__doctor__department', 'userappointment_set__doctor__hospital')\
+                .filter(userappointment__patient_id = request.user.id).order_by('state_id', 'date', 'time')
+            appointment_list = [{
+                "appointment_id"    : appointment.id,
+                "appointment_date"  : self.format_date_time(appointment.date, appointment.time),
+                "state_name"        : appointment.state.name,
+                "doctor_name"       : appointment.userappointment_set.first().doctor.user.name,
+                "doctor_hospital"   : appointment.userappointment_set.first().doctor.hospital.name,
+                "doctor_department" : appointment.userappointment_set.first().doctor.department.name,
+                "doctor_profile_img": f'{settings.LOCAL_PATH}/doctor_profile_img/{appointment.userappointment_set.first().doctor.profile_img}'
+            } for appointment in appointments]
+
+            appointments_paginator = Paginator(appointment_list, 4).page(page).object_list
+            return JsonResponse({'result' : appointments_paginator}, status=200)
+
+        except PageNotAnInteger:
+            return JsonResponse({'message' : 'PAGE_HAS_TO_BE_AN_INTEGER'})
+
+        except EmptyPage:
+            return JsonResponse({'message' : 'THE_GIVEN_PAGE_CONTAINS_NOTHING'})
+
+class AppointmentDetailView(View, DateTimeFormat):
+    @login_decorator
+    def get(self, request, appointment_id):
+        try:
+            appointment = Appointment.objects.get(id=appointment_id)
+            appointment_detail = {    
+                "Wound_img"       : [f'{settings.LOCAL_PATH}/wound_img/{image.wound_img}' for image in appointment.appointmentimage_set.all()],  
+                "patient_symptom"   : appointment.symptom,
+                "doctor_opinion"    : appointment.opinion,
+                "appointment_date"  : self.format_date_time(appointment.date, appointment.time)
+            }
+
+            return JsonResponse({'result' : appointment_detail}, status=200)
+        
+        except Appointment.DoesNotExist:
+            return JsonResponse({'APPOINTMENT_DOES_NOT_EXIST'}, status=404)
 
 class CancellationView(View):
     @login_decorator
