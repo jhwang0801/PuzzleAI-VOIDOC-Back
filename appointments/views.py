@@ -110,7 +110,7 @@ class AppointmentDetailView(View, DateTimeFormat):
     @login_decorator
     def get(self, request, appointment_id):
         try:
-            appointment = Appointment.objects.get(userappointment__patient_id=request.user.id, id=appointment_id)
+            appointment = Appointment.objects.get(id=appointment_id)
             appointment_detail = {    
                 "Wound_img"       : [f'{settings.LOCAL_PATH}/wound_img/{image.wound_img}' for image in appointment.appointmentimage_set.all()],  
                 "patient_symptom"   : appointment.symptom,
