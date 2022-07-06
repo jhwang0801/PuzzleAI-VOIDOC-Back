@@ -108,6 +108,6 @@ class PasswordResetView(View, Validation):
                 'new_password' : new_password,
                 }, status=201) 
         except ObjectDoesNotExist:
-            return JsonResponse({'message' : 'NO_USER_EXISTS_WITH_THIS_EMAIL'}, status=400)
+            return JsonResponse({'message' : 'NO_USER_EXISTS_WITH_THIS_EMAIL'}, status=404)
         except ValidationError as e:
             return JsonResponse({'message' : e.message}, status=400)

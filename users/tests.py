@@ -428,7 +428,7 @@ class PasswordResetTest(TestCase, Validation):
         # Check password reset
         response = client.post('/users/password_reset', json.dumps(data), content_type='application/json')
 
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json(), {'message' : 'NO_USER_EXISTS_WITH_THIS_EMAIL'}) 
 
     def test_fail_user_invalid_password_form(self):
