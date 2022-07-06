@@ -707,7 +707,7 @@ class AppointmentDetailTest(TestCase):
         UserAppointment.objects.all().delete()
         AppointmentImage.objects.all().delete()
 
-    def test_sucess_appointment_detail_view(self):
+    def test_success_appointment_detail_view(self):
         client  = Client()
         headers = {"HTTP_Authorization" : self.token}
 
@@ -718,7 +718,7 @@ class AppointmentDetailTest(TestCase):
             {
                 "result": {
                     "Wound_img": [
-                        f"{settings.LOCAL_PATH}/wound_img/ouch.png"
+                        f"{settings.LOCAL_PATH}/ouch.png"
                     ],
                     "patient_symptom": "cold",
                     "doctor_opinion": "blanket",
@@ -734,9 +734,7 @@ class AppointmentDetailTest(TestCase):
         response = client.get(f'/appointments/2', **headers, content_type='application/json')
 
         self.assertEqual(response.status_code, 404)
-        self.assertEqual(response.json(),
-            {'message' : 'APPOINTMENT_DOES_NOT_EXIST'}
-        )
+        self.assertEqual(response.json(), {'message' : 'APPOINTMENT_DOES_NOT_EXIST'})
 
 class CancellationTest(TestCase):
     def setUp(self):

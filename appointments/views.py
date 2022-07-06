@@ -112,16 +112,15 @@ class AppointmentDetailView(View, DateTimeFormat):
         try:
             appointment = Appointment.objects.get(id=appointment_id)
             appointment_detail = {    
-                "Wound_img"       : [f'{settings.LOCAL_PATH}/wound_img/{image.wound_img}' for image in appointment.appointmentimage_set.all()],  
+                "Wound_img"         : [f'{settings.LOCAL_PATH}/{image.wound_img}' for image in appointment.appointmentimage_set.all()],  
                 "patient_symptom"   : appointment.symptom,
                 "doctor_opinion"    : appointment.opinion,
                 "appointment_date"  : self.format_date_time(appointment.date, appointment.time)
             }
 
             return JsonResponse({'result' : appointment_detail}, status=200)
-        
         except Appointment.DoesNotExist:
-            return JsonResponse({'APPOINTMENT_DOES_NOT_EXIST'}, status=404)
+            return JsonResponse({'message' : 'APPOINTMENT_DOES_NOT_EXIST'}, status=404)
 
 class CancellationView(View):
     @login_decorator
