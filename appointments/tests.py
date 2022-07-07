@@ -692,7 +692,7 @@ class AppointmentDetailTest(TestCase):
 
         AppointmentImage.objects.create(
                 id              = 1,
-                wound_img       = "ouch.png",
+                wound_img       = "wound_img/ouch.png",
                 appointment_id  = appointment.id
         )
 
@@ -718,7 +718,7 @@ class AppointmentDetailTest(TestCase):
             {
                 "result": {
                     "Wound_img": [
-                        f"{settings.LOCAL_PATH}/ouch.png"
+                        "127.0.0.1:8000/media/wound_img/ouch.png"
                     ],
                     "patient_symptom": "cold",
                     "doctor_opinion": "blanket",
@@ -727,14 +727,16 @@ class AppointmentDetailTest(TestCase):
             }
         )
 
-    def test_fails_appointment_does_not_exist(self):
+    def test_fail_appointment_does_not_exist(self):
         client  = Client()
         headers = {"HTTP_Authorization" : self.token}
 
         response = client.get(f'/appointments/2', **headers, content_type='application/json')
 
         self.assertEqual(response.status_code, 404)
-        self.assertEqual(response.json(), {'message' : 'APPOINTMENT_DOES_NOT_EXIST'})
+        self.assertEqual(response.json(),
+            {'message' : 'APPOINTMENT_DOES_NOT_EXIST'}
+        )    
 
 class CancellationTest(TestCase):
     def setUp(self):
