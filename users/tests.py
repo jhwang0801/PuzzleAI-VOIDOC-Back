@@ -450,4 +450,3 @@ class PasswordChangeTest(TestCase, Validation):
         response = client.post('/users/password_change', json.dumps(data), content_type='application/json')
 
         self.assertEqual(response.json(), {"message": "Enter a valid password."}) 
-
