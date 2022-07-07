@@ -105,9 +105,9 @@ class PasswordChangeView(View, Validation):
             user.set_password(new_password)
             user.save()
             return JsonResponse({
-                'message' : 'PASSWORD_CHANGED_SUCCESSFULLY',
-                'email'   : user.email,
-                'new_password' : new_password,
+                'message'     : 'PASSWORD_CHANGED_SUCCESSFULLY',
+                'email'       : user.email,
+                'new_password': new_password,
                 }, status=201) 
         except ObjectDoesNotExist:
             return JsonResponse({'message' : 'NO_USER_EXISTS_WITH_THIS_EMAIL'}, status=404)
