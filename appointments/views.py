@@ -28,11 +28,11 @@ class DoctorListView(View):
             page    = request.GET.get('page', 1)
             doctors = Doctor.objects.select_related('user', 'department', 'hospital').filter(department_id=department_id)\
                 .annotate(
-                    names        = F('user__name'),
-                    departments  = F('department__name'),
-                    hospitals    = F('hospital__name'),
-                    profile_imgs = Concat(V(f'{settings.LOCAL_PATH}/doctor_profile_img/'), 'profile_img', output_field=CharField())
-                ).values('id', 'names', 'departments', 'hospitals', 'profile_imgs').order_by('id')
+                    doctor_name        = F('user__name'),
+                    doctor_department  = F('department__name'),
+                    doctor_hospital    = F('hospital__name'),
+                    doctor_profile_img = Concat(V(f'{settings.LOCAL_PATH}/doctor_profile_img/'), 'profile_img', output_field=CharField())
+                ).values('id', 'doctor_name', 'doctor_department', 'doctor_hospital', 'doctor_profile_img').order_by('id')
 
             doctors_paginator = Paginator(doctors, 6).page(page).object_list
 
