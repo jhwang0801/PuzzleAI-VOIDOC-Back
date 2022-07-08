@@ -31,7 +31,9 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_extensions',
     'users',
-    'appointments'
+    'appointments',
+    'channels',
+    'videocalls'
 ]
 
 MIDDLEWARE = [
@@ -153,3 +155,14 @@ ALGORITHM = ALGORITHM
 
 # Local Path
 LOCAL_PATH = LOCAL_PATH
+
+# Channels
+ASGI_APPLICATION = 'voidoc.asgi.application'
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('127.0.0.1', 6379)],
+        },
+    },
+}
