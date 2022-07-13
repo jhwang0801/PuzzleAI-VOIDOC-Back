@@ -24,6 +24,7 @@
 아래와 같은 비대면 진료 솔루션 **VOIDOC**의 주요 기능 API 구현 및 배포하였습니다.
 - 회원가입 & 로그인 기능
 - 예약 관련 기능 (예약 생성, 취소, 변경)
+- 화상통화 기능을 위한 Signaling Server 구축
 
 <br>
 
@@ -48,6 +49,7 @@
 │   └── department_thumbnail
 │   └── doctor_profile_img
 │   └── wound_img
+├── videocalls
 ├── voidoc
 │   └── settings.py
 ├── manage.py
@@ -59,3 +61,4 @@
 - `appointments`: 진료과목 및 의사 정보, 예약 관리 기능
 - `users`: 사용자(환자, 의사) 정보 관리 (회원가입, 로그인)
 - `media`: 로컬 서버 저장소(진료과목 이미지, 의사 프로필 사진, 환자 환부사진)
+- `videocalls`: 화상통화 기능을 위한 Signaling Server
