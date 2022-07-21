@@ -28,11 +28,12 @@ class DoctorListView(View):
             page    = request.GET.get('page', 1)
             doctors = Doctor.objects.select_related('user', 'department', 'hospital').filter(department_id=department_id)\
                 .annotate(
+                    doctor_id          = F('id'),
                     doctor_name        = F('user__name'),
                     doctor_department  = F('department__name'),
                     doctor_hospital    = F('hospital__name'),
                     doctor_profile_img = Concat(V(f'{settings.LOCAL_PATH}/doctor_profile_img/'), 'profile_img', output_field=CharField())
-                ).values('id', 'doctor_name', 'doctor_department', 'doctor_hospital', 'doctor_profile_img').order_by('id')
+                ).values('doctor_id', 'doctor_name', 'doctor_department', 'doctor_hospital', 'doctor_profile_img').order_by('id')
 
             doctors_paginator = Paginator(doctors, 6).page(page).object_list
 
@@ -91,6 +92,7 @@ class AppointmentListView(View, DateTimeFormat):
                 "appointment_id"    : appointment.id,
                 "appointment_date"  : self.format_date_time(appointment.date, appointment.time),
                 "state_name"        : appointment.state.name,
+                "doctor_id"         : appointment.userappointment_set.first().doctor.id,
                 "doctor_name"       : appointment.userappointment_set.first().doctor.user.name,
                 "doctor_hospital"   : appointment.userappointment_set.first().doctor.hospital.name,
                 "doctor_department" : appointment.userappointment_set.first().doctor.department.name,
