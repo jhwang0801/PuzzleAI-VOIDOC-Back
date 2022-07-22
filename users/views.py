@@ -36,6 +36,8 @@ class SignUpView(View, Validation):
                 password  = password,
                 is_doctor = is_doctor,
             )
+
+            user.is_active = False
             
             connection = mail.get_connection()
             connection.open()
@@ -117,10 +119,13 @@ class LoginView(View, Validation):
             else:
                 return JsonResponse({'message' : 'INVALID_TYPE_OF_APPLICATION_ON_HEADER'}, status=400)
         else:
-            user = CustomUser.objects.get(email=email)
-            if(user.is_active == False):
-                return JsonResponse({'message' : 'USER_NOT_YET_ACTIVATED'}, status=401)
-            else:
+            try:
+                user = CustomUser.objects.get(email=email)
+                if(user.is_active == False):
+                    return JsonResponse({'message' : 'USER_NOT_YET_ACTIVATED'}, status=401)
+                else:
+                    return JsonResponse({'message' : 'WRONG_EMAIL_OR_PASSWORD'}, status=401)
+            except ObjectDoesNotExist:
                 return JsonResponse({'message' : 'WRONG_EMAIL_OR_PASSWORD'}, status=401)
 
 class CheckDuplicateEmailView(View, Validation):
