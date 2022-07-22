@@ -39,7 +39,7 @@ class CustomUser(AbstractBaseUser):
     is_doctor    = models.BooleanField(default=False, null=True)
     date_joined  = models.DateTimeField(auto_now_add=True)
     is_superuser = models.BooleanField(default=False)
-    is_active    = models.BooleanField(default=False)
+    is_active    = models.BooleanField(default=True)
 
     objects = UserManager()
 
