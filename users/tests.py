@@ -5,6 +5,10 @@ from django.test import TestCase, Client, TransactionTestCase
 from users.models import CustomUser
 from users.utils  import Validation
 
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.encoding import force_bytes, force_str
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+
 class SignUpTest(TestCase):
     def setUp(self):
         CustomUser.objects.create_user(
@@ -91,14 +95,55 @@ class SignUpTest(TestCase):
             'message': "Users must have the name"
         })
 
-class SignUpIntegrityTest(TransactionTestCase):
+class ActivateUserTest(TestCase):
     def setUp(self):
         CustomUser.objects.create_user(
+            name      = 'email',
+            email     = 'email1@gmail.com',
+            password  = 'email12345',
+            is_doctor = 'False'   
+        )
+
+    def tearDown(self):
+        CustomUser.objects.all().delete()
+    
+    def test_success_user_activated(self):
+        client = Client()
+        user = CustomUser.objects.get(email='email1@gmail.com')
+        uid = urlsafe_base64_encode(force_bytes(user.id))  
+        token = default_token_generator.make_token(user)  
+        
+        url = "http://localhost:8000/users/activate/%s/%s" % (uid, token)
+        response = client.get(url, content_type='application/json')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            'message': 'SUCCESS_USER_ACTIVATED'
+        })
+
+    def test_fail_invalid_link(self):
+        client = Client()
+        user = CustomUser.objects.get(email='email1@gmail.com')
+        uid = urlsafe_base64_encode(force_bytes(user.id))  
+        token = default_token_generator.make_token(user)  
+        
+        url = "http://localhost:8000/users/activate/%s/%sasd" % (uid, token)
+        response = client.get(url, content_type='application/json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(), {
+            'message': 'INVALID_AUTHORIZATION_LINK'
+        })
+
+class SignUpIntegrityTest(TransactionTestCase):
+    def setUp(self):
+        user = CustomUser.objects.create_user(
             name      = 'kevin',
             email     = 'kevin@gmail.com',
             password  = 'asdf12345',
             is_doctor = 'False'            
         )
+        user.is_active = True
 
     def tearDown(self):
         CustomUser.objects.all().delete()

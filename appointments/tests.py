@@ -56,6 +56,7 @@ class DepartmentsListTest(TestCase):
 
 class DoctorListTest(TestCase):
     def setUp(self):
+        self.maxDiff = None
         CustomUser.objects.create_user(
             name      = 'kevin',
             email     = 'kevin@gmail.com',
@@ -106,11 +107,11 @@ class DoctorListTest(TestCase):
             {
                 "result": [
                     {
-                        "id"         : 1,
-                        "names"       : "doctor",
-                        "departments" : "가정의학과",
-                        "hospitals"   : "퍼즐AI병원",
-                        "profile_imgs": f"{settings.LOCAL_PATH}/doctor_profile_img/doctor_profile.png"
+                        "id"                : 1,
+                        "doctor_name"       : "doctor",
+                        "doctor_department" : "가정의학과",
+                        "doctor_hospital"   : "퍼즐AI병원",
+                        "doctor_profile_img": f"{settings.LOCAL_PATH}/doctor_profile_img/doctor_profile.png"
                     }
                 ]
             }
