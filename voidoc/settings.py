@@ -1,7 +1,7 @@
 import os
 
 from pathlib     import Path
-from my_settings import SECRET_KEY, DATABASES, DEBUG, ALGORITHM, LOCAL_PATH
+from my_settings import SECRET_KEY, DATABASES, DEBUG, ALGORITHM, LOCAL_PATH, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -166,3 +166,11 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+# Email Configuration
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_USE_TLS = True  
+EMAIL_HOST = 'smtp-relay.sendinblue.com'  
+EMAIL_HOST_USER = EMAIL_HOST_USER
+EMAIL_HOST_PASSWORD = EMAIL_HOST_PASSWORD
+EMAIL_PORT = EMAIL_PORT
