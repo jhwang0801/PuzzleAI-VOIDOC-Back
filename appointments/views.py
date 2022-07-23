@@ -8,8 +8,8 @@ from django.core.paginator      import Paginator, PageNotAnInteger, EmptyPage
 from django.db.models           import CharField, Value as V, Q, F
 from django.db.models.functions import Concat
 
-from users.utils  import login_decorator, DateTimeFormat
-from users.models import Department, Doctor, WorkingDay, WorkingTime
+from users.utils         import login_decorator, DateTimeFormat
+from users.models        import Department, Doctor, WorkingDay, WorkingTime
 from appointments.models import Appointment, AppointmentImage, UserAppointment
 
 class DepartmentsListView(View):
@@ -26,14 +26,13 @@ class DoctorListView(View):
     def get(self, request, department_id):
         try: 
             page    = request.GET.get('page', 1)
-            doctors = Doctor.objects.select_related('user', 'department', 'hospital').filter(department_id=department_id)\
-                .annotate(
-                    doctor_id          = F('id'),
-                    doctor_name        = F('user__name'),
-                    doctor_department  = F('department__name'),
-                    doctor_hospital    = F('hospital__name'),
-                    doctor_profile_img = Concat(V(f'{settings.LOCAL_PATH}/doctor_profile_img/'), 'profile_img', output_field=CharField())
-                ).values('doctor_id', 'doctor_name', 'doctor_department', 'doctor_hospital', 'doctor_profile_img').order_by('id')
+            doctors = Doctor.objects.filter(department_id=department_id).annotate(
+                doctor_id          = F('id'),
+                doctor_name        = F('user__name'),
+                doctor_department  = F('department__name'),
+                doctor_hospital    = F('hospital__name'),
+                doctor_profile_img = Concat(V(f'{settings.LOCAL_PATH}/doctor_profile_img/'), 'profile_img', output_field=CharField())
+            ).values('doctor_id', 'doctor_name', 'doctor_department', 'doctor_hospital', 'doctor_profile_img').order_by('id')
 
             doctors_paginator = Paginator(doctors, 6).page(page).object_list
 

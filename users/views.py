@@ -82,7 +82,7 @@ class LoginView(View, Validation):
 class CheckDuplicateEmailView(View, Validation):
     def post(self, request):
         try:
-            data = json.loads(request.body)
+            data  = json.loads(request.body)
             email = data['email']
             self.check_duplicate_email(email)
             
