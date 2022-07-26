@@ -25,6 +25,7 @@
 - 회원가입 & 로그인 기능
 - 예약 관련 기능 (예약 생성, 취소, 변경)
 - 화상통화 기능을 위한 Signaling Server 구축
+- [프로젝트 기능 시연영상](https://www.youtube.com/watch?v=mLJSyhmvIWk)
 
 <br>
 
